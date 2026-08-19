@@ -1,7 +1,7 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/middleware/auth";
+import { prisma } from "../lib/prisma";
+import { requireAuth } from "../middleware/auth";
 
 export const categoriesRouter = Router();
 categoriesRouter.use(requireAuth);

@@ -1,9 +1,9 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { signToken } from "@/lib/jwt";
-import { requireAuth, type AuthedRequest } from "@/middleware/auth";
+import { prisma } from "../lib/prisma";
+import { signToken } from "../lib/jwt";
+import { requireAuth, type AuthedRequest } from "../middleware/auth";
 
 export const authRouter = Router();
 
@@ -30,7 +30,7 @@ authRouter.post("/register", async (req, res) => {
   const existingUserCount = await prisma.user.count();
   if (existingUserCount > 0) {
     return res.status(403).json({
-      error: "Self-registration is closed. Ask your Super Admin to add you from Settings → Users.",
+      error: "Self-registration is closed. Ask your Super Admin to add you from Settings â†’ Users.",
     });
   }
 

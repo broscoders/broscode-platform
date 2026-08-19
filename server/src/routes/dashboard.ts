@@ -1,6 +1,6 @@
-import { Router } from "express";
-import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/middleware/auth";
+﻿import { Router } from "express";
+import { prisma } from "../lib/prisma";
+import { requireAuth } from "../middleware/auth";
 
 interface DashboardInvoiceRow {
   total: number;

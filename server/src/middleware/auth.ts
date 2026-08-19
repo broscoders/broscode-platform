@@ -1,5 +1,5 @@
-import type { Request, Response, NextFunction } from "express";
-import { verifyToken } from "@/lib/jwt";
+﻿import type { Request, Response, NextFunction } from "express";
+import { verifyToken } from "../lib/jwt";
 
 export interface AuthedRequest extends Request {
   user?: { userId: string; role: string };

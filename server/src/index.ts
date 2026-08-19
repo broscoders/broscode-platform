@@ -6,12 +6,12 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 
-import { authRouter } from "@/routes/auth";
-import { leadsRouter } from "@/routes/leads";
-import { categoriesRouter } from "@/routes/categories";
-import { templatesRouter, emailRouter } from "@/routes/templates";
-import { emailAccountsRouter } from "@/routes/email-accounts";
-import { dashboardRouter } from "@/routes/dashboard";
+import { authRouter } from "./routes/auth";
+import { leadsRouter } from "./routes/leads";
+import { categoriesRouter } from "./routes/categories";
+import { templatesRouter, emailRouter } from "./routes/templates";
+import { emailAccountsRouter } from "./routes/email-accounts";
+import { dashboardRouter } from "./routes/dashboard";
 
 const app = express();
 const PORT = process.env.PORT || 4000;

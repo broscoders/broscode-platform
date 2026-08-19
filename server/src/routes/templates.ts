@@ -1,8 +1,8 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { requireAuth, type AuthedRequest } from "@/middleware/auth";
-import { getResendClient, fillTemplate } from "@/lib/email";
+import { prisma } from "../lib/prisma";
+import { requireAuth, type AuthedRequest } from "../middleware/auth";
+import { getResendClient, fillTemplate } from "../lib/email";
 
 export const templatesRouter = Router();
 export const emailRouter = Router();
@@ -92,13 +92,13 @@ emailRouter.post("/send/:leadId", async (req: AuthedRequest, res) => {
   });
   if (!template) {
     return res.status(400).json({
-      error: `No active email template for category "${lead.category?.name}". Create one in Settings → Email Templates.`,
+      error: `No active email template for category "${lead.category?.name}". Create one in Settings â†’ Email Templates.`,
     });
   }
 
   const account = await prisma.emailAccount.findFirst({ where: { connectionStatus: "connected" } });
   if (!account) {
-    return res.status(400).json({ error: "No connected email account. Connect one in Settings → Email Accounts." });
+    return res.status(400).json({ error: "No connected email account. Connect one in Settings â†’ Email Accounts." });
   }
 
   const vars = {

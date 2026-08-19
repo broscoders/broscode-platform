@@ -1,13 +1,13 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { requireAuth, type AuthedRequest } from "@/middleware/auth";
+import { prisma } from "../lib/prisma";
+import { requireAuth, type AuthedRequest } from "../middleware/auth";
 import {
   searchGooglePlaces,
   enrichEmailFromWebsite,
   inferCategoryName,
   scoreLead,
-} from "@/lib/lead-discovery";
+} from "../lib/lead-discovery";
 
 export const leadsRouter = Router();
 leadsRouter.use(requireAuth);
@@ -20,7 +20,7 @@ const discoverSchema = z.object({
   quantity: z.number().int().min(1).max(200).default(20),
 });
 
-// AI LEAD FINDER — discovers real businesses via Google Places, enriches
+// AI LEAD FINDER â€” discovers real businesses via Google Places, enriches
 // with a best-effort email lookup, auto-categorizes, and scores each lead.
 leadsRouter.post("/discover", async (req: AuthedRequest, res) => {
   const parsed = discoverSchema.safeParse(req.body);
