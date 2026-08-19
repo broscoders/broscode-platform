@@ -1,4 +1,4 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
@@ -77,7 +77,8 @@ templatesRouter.patch("/:id/status", async (req, res) => {
 // ONE-CLICK EMAIL: category is checked, active template auto-selected,
 // lead data merged in, and the send is logged with the exact version used.
 emailRouter.post("/send/:leadId", async (req: AuthedRequest, res) => {
-  const lead = await prisma.lead.findUnique({ where: { id: req.params.leadId }, include: { category: true } });
+  const leadId = String(req.params.leadId);
+  const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { category: true } });
   if (!lead) return res.status(404).json({ error: "Lead not found." });
   if (!lead.email) {
     return res.status(400).json({ error: "This lead has no verified email on file." });

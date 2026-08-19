@@ -1,4 +1,4 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
@@ -20,7 +20,7 @@ const discoverSchema = z.object({
   quantity: z.number().int().min(1).max(200).default(20),
 });
 
-// AI LEAD FINDER â€” discovers real businesses via Google Places, enriches
+// AI LEAD FINDER Ã¢â‚¬â€ discovers real businesses via Google Places, enriches
 // with a best-effort email lookup, auto-categorizes, and scores each lead.
 leadsRouter.post("/discover", async (req: AuthedRequest, res) => {
   const parsed = discoverSchema.safeParse(req.body);
@@ -163,19 +163,42 @@ leadsRouter.get("/:id", async (req, res) => {
 });
 
 const updateSchema = z.object({
-  status: z.string().optional(),
+  status: z
+    .enum([
+      "NEW",
+      "QUALIFIED",
+      "CONTACTED",
+      "REPLIED",
+      "INTERESTED",
+      "MEETING",
+      "PROPOSAL",
+      "NEGOTIATION",
+      "WON",
+      "LOST",
+      "NOT_INTERESTED",
+      "DO_NOT_CONTACT",
+    ])
+    .optional(),
   categoryId: z.string().optional(),
   assignedToId: z.string().optional(),
   tags: z.array(z.string()).optional(),
 });
 
 leadsRouter.patch("/:id", async (req: AuthedRequest, res) => {
+  const leadId = String(req.params.id);
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid input." });
 
+  const { status, categoryId, assignedToId, tags } = parsed.data;
+
   const lead = await prisma.lead.update({
-    where: { id: req.params.id },
-    data: parsed.data,
+    where: { id: leadId },
+    data: {
+      ...(status !== undefined && { status }),
+      ...(categoryId !== undefined && { categoryId }),
+      ...(assignedToId !== undefined && { assignedToId }),
+      ...(tags !== undefined && { tags }),
+    },
   });
 
   await prisma.leadActivity.create({
@@ -195,7 +218,7 @@ leadsRouter.post("/:id/notes", async (req: AuthedRequest, res) => {
   if (!content) return res.status(400).json({ error: "Note content is required." });
 
   const note = await prisma.note.create({
-    data: { leadId: req.params.id, userId: req.user!.userId, content },
+    data: { leadId: String(req.params.id), userId: req.user!.userId, content },
   });
   return res.status(201).json(note);
 });
