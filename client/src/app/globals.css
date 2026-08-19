@@ -1,0 +1,100 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: 245 247 251;
+  --surface: 255 255 255;
+  --surface-2: 250 251 253;
+  --border: 226 232 240;
+  --text: 11 15 26;
+  --text-muted: 100 116 139;
+  --primary: 37 122 235;
+  --primary-dim: 27 95 196;
+  --steel: 100 116 139;
+  --success: 22 163 74;
+  --warning: 217 119 6;
+  --danger: 220 38 38;
+}
+
+.dark {
+  --bg: 7 10 17;
+  --surface: 14 19 30;
+  --surface-2: 18 25 39;
+  --border: 27 37 56;
+  --text: 236 240 247;
+  --text-muted: 148 163 184;
+  --primary: 59 152 255;
+  --primary-dim: 96 179 255;
+  --steel: 199 210 224;
+  --success: 34 197 94;
+  --warning: 245 166 35;
+  --danger: 248 113 113;
+}
+
+@theme inline {
+  --color-bg: rgb(var(--bg));
+  --color-surface: rgb(var(--surface));
+  --color-surface-2: rgb(var(--surface-2));
+  --color-border: rgb(var(--border));
+  --color-text: rgb(var(--text));
+  --color-text-muted: rgb(var(--text-muted));
+  --color-primary: rgb(var(--primary));
+  --color-primary-dim: rgb(var(--primary-dim));
+  --color-steel: rgb(var(--steel));
+  --color-success: rgb(var(--success));
+  --color-warning: rgb(var(--warning));
+  --color-danger: rgb(var(--danger));
+
+  --font-display: var(--font-space-grotesk);
+  --font-sans: var(--font-inter);
+  --font-data: var(--font-jetbrains-mono);
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text));
+  font-feature-settings: "cv11", "ss01";
+}
+
+.font-data {
+  font-family: var(--font-jetbrains-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* signature bracket motif — echoes the </> mark in the Bro's Code logo */
+.bracket-marker {
+  position: relative;
+  font-family: var(--font-jetbrains-mono);
+}
+.bracket-marker::before {
+  content: "<";
+  margin-right: 2px;
+  opacity: 0.55;
+}
+.bracket-marker::after {
+  content: "/>";
+  margin-left: 2px;
+  opacity: 0.55;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgb(var(--border)); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--steel)); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

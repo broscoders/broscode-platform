@@ -1,0 +1,438 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  SALES
+  DEVELOPER
+  DESIGNER
+  MARKETER
+}
+
+model User {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  email            String   @unique
+  passwordHash     String
+  role             Role     @default(SALES)
+  department       String?
+  status           String   @default("active")
+  commissionRate   Float    @default(0)
+  commissionType   String   @default("percentage")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  assignedLeads    Lead[]          @relation("LeadAssignee")
+  assignedDeals    Deal[]          @relation("DealAssignee")
+  projectsManaged  Project[]       @relation("ProjectManager")
+  projectMembers   ProjectMember[]
+  commissions      Commission[]
+  notes            Note[]
+  activities       LeadActivity[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  expenses         Expense[]
+}
+
+model Category {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String    @unique
+  parentId      String?   @db.ObjectId
+  archived      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  parent        Category?  @relation("SubCategory", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children      Category[] @relation("SubCategory")
+  leads         Lead[]
+  templates     EmailTemplate[]
+}
+
+model LeadSource {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique
+  leads     Lead[]
+}
+
+enum LeadStatus {
+  NEW
+  QUALIFIED
+  CONTACTED
+  REPLIED
+  INTERESTED
+  MEETING
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+  NOT_INTERESTED
+  DO_NOT_CONTACT
+}
+
+model Lead {
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  businessName    String
+  contactName     String?
+  categoryId      String?    @db.ObjectId
+  website         String?
+  email           String?
+  phone           String?
+  address         String?
+  city            String?
+  country         String?
+  socialLinks     Json?
+  sourceId        String?    @db.ObjectId
+  score           Int        @default(0)
+  priority        String     @default("Cold")
+  status          LeadStatus @default(NEW)
+  assignedToId    String?    @db.ObjectId
+  tags            String[]   @default([])
+  dateFound       DateTime   @default(now())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  category        Category?      @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  source          LeadSource?    @relation(fields: [sourceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedTo      User?          @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  activities      LeadActivity[]
+  emailLogs       EmailLog[]
+  followUps       FollowUpTask[]
+  notes           Note[]
+  deals           Deal[]
+  customer        Customer?
+}
+
+model LeadActivity {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  leadId    String   @db.ObjectId
+  userId    String?  @db.ObjectId
+  type      String
+  message   String
+  createdAt DateTime @default(now())
+
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model EmailTemplate {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  categoryId  String?  @db.ObjectId
+  subject     String
+  body        String
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category    Category?             @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  versions    EmailTemplateVersion[]
+  logs        EmailLog[]
+}
+
+model EmailTemplateVersion {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  templateId  String   @db.ObjectId
+  version     Int
+  subject     String
+  body        String
+  createdAt   DateTime @default(now())
+
+  template    EmailTemplate @relation(fields: [templateId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model EmailAccount {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  senderName       String
+  senderEmail      String
+  provider         String
+  connectionStatus String   @default("disconnected")
+  dailyUsage       Int      @default(0)
+  errorStatus      String?
+  createdAt        DateTime @default(now())
+}
+
+model EmailLog {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  leadId           String?  @db.ObjectId
+  templateId       String?  @db.ObjectId
+  templateVersion  Int?
+  recipient        String
+  sender           String
+  subject          String
+  status           String   @default("sent")
+  sentAt           DateTime @default(now())
+
+  lead             Lead?          @relation(fields: [leadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  template         EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model FollowUpTask {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  leadId    String   @db.ObjectId
+  dayOffset Int
+  label     String
+  dueDate   DateTime
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Customer {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  leadId         String?  @unique @db.ObjectId
+  company        String
+  contactPerson  String?
+  email          String?
+  phone          String?
+  address        String?
+  industry       String?
+  createdAt      DateTime @default(now())
+
+  lead           Lead?    @relation(fields: [leadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  deals          Deal[]
+  orders         Order[]
+  notes          Note[]
+}
+
+enum DealStage {
+  NEW
+  QUALIFIED
+  MEETING
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+model Deal {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  leadId          String?   @db.ObjectId
+  customerId      String?   @db.ObjectId
+  value           Float
+  discount        Float     @default(0)
+  expectedRevenue Float?
+  stage           DealStage @default(NEW)
+  probability     Int       @default(20)
+  assignedToId    String?   @db.ObjectId
+  closingDate     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  lead            Lead?     @relation(fields: [leadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer        Customer? @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedTo      User?     @relation("DealAssignee", fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  activities      DealActivity[]
+  notes           Note[]
+  orders          Order[]
+}
+
+model DealActivity {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  dealId    String   @db.ObjectId
+  message   String
+  createdAt DateTime @default(now())
+
+  deal      Deal     @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Order {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber     String   @unique
+  customerId      String   @db.ObjectId
+  dealId          String?  @db.ObjectId
+  subtotal        Float
+  discount        Float    @default(0)
+  tax             Float    @default(0)
+  total           Float
+  paymentStatus   String   @default("pending")
+  createdAt       DateTime @default(now())
+
+  customer        Customer     @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  deal            Deal?        @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  items           OrderItem[]
+  invoice         Invoice?
+  project         Project?
+  commissions     Commission[]
+}
+
+model OrderItem {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  orderId    String  @db.ObjectId
+  service    String
+  quantity   Int     @default(1)
+  unitPrice  Float
+
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Invoice {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceNumber  String   @unique
+  orderId        String   @unique @db.ObjectId
+  subtotal       Float
+  discount       Float    @default(0)
+  tax            Float    @default(0)
+  total          Float
+  paidAmount     Float    @default(0)
+  dueDate        DateTime
+  status         String   @default("pending")
+  createdAt      DateTime @default(now())
+
+  order          Order      @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  payments       Payment[]
+}
+
+model Payment {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceId  String   @db.ObjectId
+  amount     Float
+  method     String?
+  paidAt     DateTime @default(now())
+
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  REVIEW
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+model Project {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  customerId     String?       @db.ObjectId
+  orderId        String?       @unique @db.ObjectId
+  categoryId     String?       @db.ObjectId
+  budget         Float?
+  revenue        Float?
+  startDate      DateTime?
+  deadline       DateTime?
+  status         ProjectStatus @default(PLANNING)
+  progress       Int           @default(0)
+  managerId      String?       @db.ObjectId
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  order          Order?          @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  manager        User?           @relation("ProjectManager", fields: [managerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tasks          ProjectTask[]
+  members        ProjectMember[]
+  notes          Note[]
+}
+
+model ProjectMember {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  projectId  String  @db.ObjectId
+  userId     String  @db.ObjectId
+  role       String
+
+  project    Project @relation(fields: [projectId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user       User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([projectId, userId])
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+model ProjectTask {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  projectId    String     @db.ObjectId
+  title        String
+  description  String?
+  assignedTo   String?    @db.ObjectId
+  priority     String     @default("medium")
+  deadline     DateTime?
+  status       TaskStatus @default(TODO)
+  createdAt    DateTime   @default(now())
+
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Commission {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  orderId    String?  @db.ObjectId
+  amount     Float
+  rate       Float?
+  type       String   @default("percentage")
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Expense {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  category     String
+  amount       Float
+  date         DateTime @default(now())
+  description  String?
+  addedById    String?  @db.ObjectId
+
+  addedBy      User?    @relation(fields: [addedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Note {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  content     String
+  userId      String?  @db.ObjectId
+  leadId      String?  @db.ObjectId
+  customerId  String?  @db.ObjectId
+  dealId      String?  @db.ObjectId
+  projectId   String?  @db.ObjectId
+  createdAt   DateTime @default(now())
+
+  user        User?     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lead        Lead?     @relation(fields: [leadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  deal        Deal?     @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  type      String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model AuditLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String?  @db.ObjectId
+  action     String
+  recordType String?
+  recordId   String?
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Setting {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  key    String @unique
+  value  Json
+}
