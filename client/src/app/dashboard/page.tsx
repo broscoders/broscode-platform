@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Users,
   UserPlus,
@@ -21,63 +24,137 @@ import { RevenueChart } from "@/components/dashboard/revenue-chart";
 import { PipelineChart } from "@/components/dashboard/pipeline-chart";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { api } from "@/lib/api";
 
-const stats = [
-  { label: "Total Leads", value: "3,482", delta: "+128 this week", trend: "up" as const, icon: Users },
-  { label: "New Leads", value: "214", delta: "+18% vs last week", trend: "up" as const, icon: UserPlus },
-  { label: "Contacted", value: "1,096", delta: "31.5% of total", trend: "neutral" as const, icon: PhoneCall },
-  { label: "Qualified", value: "540", delta: "15.5% qualify rate", trend: "up" as const, icon: BadgeCheck },
-  { label: "Total Customers", value: "312", delta: "+9 this month", trend: "up" as const, icon: Building2 },
-  { label: "Active Deals", value: "87", delta: "$412k in pipeline", trend: "neutral" as const, icon: Target },
-  { label: "Won Deals", value: "22", delta: "+4 this month", trend: "up" as const, icon: Trophy },
-  { label: "Active Projects", value: "18", delta: "6 due this week", trend: "neutral" as const, icon: FolderKanban },
-  { label: "Completed Projects", value: "64", delta: "96% on-time rate", trend: "up" as const, icon: CheckCircle2 },
-  { label: "Total Revenue", value: "$186.4k", delta: "+12.4% MoM", trend: "up" as const, icon: DollarSign },
-  { label: "Pending Payments", value: "$24.1k", delta: "9 invoices overdue", trend: "down" as const, icon: Clock },
-  { label: "Total Expenses", value: "$41.8k", delta: "22.4% of revenue", trend: "neutral" as const, icon: Receipt },
-  { label: "Net Profit", value: "$144.6k", delta: "77.6% margin", trend: "up" as const, icon: TrendingUp },
-  { label: "Team Commission", value: "$18.2k", delta: "12 payees", trend: "neutral" as const, icon: Percent },
-  { label: "Emails Sent", value: "4,920", delta: "312 today", trend: "neutral" as const, icon: Mail },
-  { label: "Email Replies", value: "386", delta: "7.8% reply rate", trend: "up" as const, icon: MailOpen },
-];
+interface DashboardSummary {
+  totalLeads: number;
+  newLeads: number;
+  contactedLeads: number;
+  qualifiedLeads: number;
+  totalCustomers: number;
+  activeDeals: number;
+  wonDeals: number;
+  activeProjects: number;
+  completedProjects: number;
+  totalRevenue: number;
+  pendingPayments: number;
+  totalExpenses: number;
+  netProfit: number;
+  totalCommission: number;
+  emailsSent: number;
+  emailReplies: number;
+}
 
-const recentLeads = [
-  { name: "Al-Madina Restaurant", category: "Restaurant", city: "Lahore", score: 88, status: "Qualified" },
-  { name: "Smile Care Dental", category: "Dental", city: "Karachi", score: 74, status: "Contacted" },
-  { name: "Prime Realty Co.", category: "Real Estate", city: "Islamabad", score: 91, status: "Meeting" },
-  { name: "FitZone Gym", category: "Fitness", city: "Lahore", score: 63, status: "New" },
-  { name: "NextGen Softworks", category: "Software", city: "Karachi", score: 95, status: "Proposal" },
-];
+interface RevenuePoint {
+  month: string;
+  revenue: number;
+}
+
+interface PipelinePoint {
+  stage: string;
+  count: number;
+}
+
+interface LeadRow {
+  id: string;
+  businessName: string;
+  city: string | null;
+  score: number;
+  status: string;
+  category: { name: string } | null;
+}
 
 const statusVariant: Record<string, "default" | "success" | "warning" | "neutral"> = {
-  Qualified: "default",
-  Contacted: "warning",
-  Meeting: "default",
-  New: "neutral",
-  Proposal: "success",
+  QUALIFIED: "default",
+  CONTACTED: "warning",
+  MEETING: "default",
+  NEW: "neutral",
+  PROPOSAL: "success",
+  WON: "success",
 };
 
+function money(n: number) {
+  return `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
+
 export default function DashboardPage() {
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [revenueTrend, setRevenueTrend] = useState<RevenuePoint[]>([]);
+  const [pipeline, setPipeline] = useState<PipelinePoint[]>([]);
+  const [recentLeads, setRecentLeads] = useState<LeadRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [summaryRes, revenueRes, pipelineRes, leadsRes] = await Promise.all([
+          api.get<DashboardSummary>("/dashboard/summary"),
+          api.get<RevenuePoint[]>("/dashboard/revenue-trend"),
+          api.get<PipelinePoint[]>("/dashboard/pipeline"),
+          api.get<{ leads: LeadRow[] }>("/leads", { params: { page: 1, pageSize: 5 } }),
+        ]);
+        if (cancelled) return;
+        setSummary(summaryRes.data);
+        setRevenueTrend(revenueRes.data);
+        setPipeline(pipelineRes.data);
+        setRecentLeads(leadsRes.data.leads);
+      } catch {
+        if (!cancelled) setError("Couldn't load dashboard data. Check your connection and try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <p className="font-data text-xs text-text-muted">{"<"} loading dashboard {"/>"}</p>
+      </div>
+    );
+  }
+
+  if (error || !summary) {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-2 text-center">
+        <p className="text-sm text-danger">{error ?? "Something went wrong."}</p>
+      </div>
+    );
+  }
+
+  const stats = [
+    { label: "Total Leads", value: summary.totalLeads.toLocaleString(), icon: Users },
+    { label: "New Leads", value: summary.newLeads.toLocaleString(), icon: UserPlus },
+    { label: "Contacted", value: summary.contactedLeads.toLocaleString(), icon: PhoneCall },
+    { label: "Qualified", value: summary.qualifiedLeads.toLocaleString(), icon: BadgeCheck },
+    { label: "Total Customers", value: summary.totalCustomers.toLocaleString(), icon: Building2 },
+    { label: "Active Deals", value: summary.activeDeals.toLocaleString(), icon: Target },
+    { label: "Won Deals", value: summary.wonDeals.toLocaleString(), icon: Trophy },
+    { label: "Active Projects", value: summary.activeProjects.toLocaleString(), icon: FolderKanban },
+    { label: "Completed Projects", value: summary.completedProjects.toLocaleString(), icon: CheckCircle2 },
+    { label: "Total Revenue", value: money(summary.totalRevenue), icon: DollarSign },
+    { label: "Pending Payments", value: money(summary.pendingPayments), icon: Clock },
+    { label: "Total Expenses", value: money(summary.totalExpenses), icon: Receipt },
+    { label: "Net Profit", value: money(summary.netProfit), icon: TrendingUp },
+    { label: "Team Commission", value: money(summary.totalCommission), icon: Percent },
+    { label: "Emails Sent", value: summary.emailsSent.toLocaleString(), icon: Mail },
+    { label: "Email Replies", value: summary.emailReplies.toLocaleString(), icon: MailOpen },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-xl font-semibold tracking-tight">Overview</h1>
           <p className="text-sm text-text-muted">Business snapshot across leads, sales, and delivery.</p>
-        </div>
-        <div className="flex gap-2">
-          {["Today", "7D", "30D", "This Month", "This Year"].map((f, i) => (
-            <button
-              key={f}
-              className={`h-8 rounded-lg px-3 text-xs font-medium transition-colors ${
-                i === 2
-                  ? "bg-primary text-white"
-                  : "border border-border bg-surface text-text-muted hover:text-text"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -93,7 +170,7 @@ export default function DashboardPage() {
             <CardTitle className="bracket-marker">Revenue Over Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <RevenueChart />
+            <RevenueChart data={revenueTrend} />
           </CardContent>
         </Card>
 
@@ -102,7 +179,7 @@ export default function DashboardPage() {
             <CardTitle className="bracket-marker">Sales Pipeline</CardTitle>
           </CardHeader>
           <CardContent>
-            <PipelineChart />
+            <PipelineChart data={pipeline} />
           </CardContent>
         </Card>
       </div>
@@ -112,32 +189,38 @@ export default function DashboardPage() {
           <CardTitle className="bracket-marker">Recently Discovered Leads</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-t border-border text-left text-xs uppercase tracking-wide text-text-muted">
-                  <th className="px-5 py-3 font-medium">Business</th>
-                  <th className="px-5 py-3 font-medium">Category</th>
-                  <th className="px-5 py-3 font-medium">City</th>
-                  <th className="px-5 py-3 font-medium">Score</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentLeads.map((lead) => (
-                  <tr key={lead.name} className="border-t border-border hover:bg-surface-2">
-                    <td className="px-5 py-3 font-medium">{lead.name}</td>
-                    <td className="px-5 py-3 text-text-muted">{lead.category}</td>
-                    <td className="px-5 py-3 text-text-muted">{lead.city}</td>
-                    <td className="px-5 py-3 font-data">{lead.score}</td>
-                    <td className="px-5 py-3">
-                      <Badge variant={statusVariant[lead.status] ?? "neutral"}>{lead.status}</Badge>
-                    </td>
+          {recentLeads.length === 0 ? (
+            <p className="px-5 py-8 text-center text-sm text-text-muted">
+              No leads yet - use AI Lead Finder to discover your first batch.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-t border-border text-left text-xs uppercase tracking-wide text-text-muted">
+                    <th className="px-5 py-3 font-medium">Business</th>
+                    <th className="px-5 py-3 font-medium">Category</th>
+                    <th className="px-5 py-3 font-medium">City</th>
+                    <th className="px-5 py-3 font-medium">Score</th>
+                    <th className="px-5 py-3 font-medium">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {recentLeads.map((lead) => (
+                    <tr key={lead.id} className="border-t border-border hover:bg-surface-2">
+                      <td className="px-5 py-3 font-medium">{lead.businessName}</td>
+                      <td className="px-5 py-3 text-text-muted">{lead.category?.name ?? "Uncategorized"}</td>
+                      <td className="px-5 py-3 text-text-muted">{lead.city ?? "-"}</td>
+                      <td className="px-5 py-3 font-data">{lead.score}</td>
+                      <td className="px-5 py-3">
+                        <Badge variant={statusVariant[lead.status] ?? "neutral"}>{lead.status}</Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

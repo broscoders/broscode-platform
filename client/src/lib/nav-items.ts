@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Settings,
   Bot,
+  Mail,
 } from "lucide-react";
 
 export interface NavItem {
@@ -36,6 +37,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { label: "AI Lead Finder", href: "/dashboard/leads/finder", icon: Radar },
       { label: "All Leads", href: "/dashboard/leads", icon: Users },
+      { label: "Email Templates", href: "/dashboard/leads/templates", icon: Mail },
     ],
   },
   {
