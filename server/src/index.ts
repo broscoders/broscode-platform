@@ -1,4 +1,4 @@
-﻿import "dotenv/config";
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -12,6 +12,16 @@ import { categoriesRouter } from "./routes/categories";
 import { templatesRouter, emailRouter } from "./routes/templates";
 import { emailAccountsRouter } from "./routes/email-accounts";
 import { dashboardRouter } from "./routes/dashboard";
+import { assistantRouter } from "./routes/assistant";
+import { customersRouter, dealsRouter } from "./routes/crm";
+import { teamRouter } from "./routes/team";
+import { ordersRouter } from "./routes/orders";
+import { projectsRouter } from "./routes/projects";
+import { expensesRouter } from "./routes/expenses";
+import { analyticsRouter } from "./routes/analytics";
+import { searchRouter } from "./routes/search";
+import { notificationsRouter } from "./routes/notifications";
+import { calendarRouter } from "./routes/calendar";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -41,6 +51,17 @@ app.use("/api/templates", templatesRouter);
 app.use("/api/email", emailRouter);
 app.use("/api/email-accounts", emailAccountsRouter);
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/assistant", assistantRouter);
+app.use("/api/customers", customersRouter);
+app.use("/api/deals", dealsRouter);
+app.use("/api/team", teamRouter);
+app.use("/api/orders", ordersRouter);
+app.use("/api/projects", projectsRouter);
+app.use("/api/expenses", expensesRouter);
+app.use("/api/analytics", analyticsRouter);
+app.use("/api/search", searchRouter);
+app.use("/api/notifications", notificationsRouter);
+app.use("/api/calendar", calendarRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

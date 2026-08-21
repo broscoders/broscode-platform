@@ -1,4 +1,4 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { requireAuth } from "../middleware/auth";
 
@@ -68,4 +68,41 @@ dashboardRouter.get("/summary", async (_req, res) => {
     emailsSent,
     emailReplies,
   });
+});
+
+// Monthly revenue for the last 7 months, built from real invoice payments -
+// months with no paid invoices show as 0 rather than being omitted or faked.
+dashboardRouter.get("/revenue-trend", async (_req, res) => {
+  const invoices = await prisma.invoice.findMany({
+    where: { paidAmount: { gt: 0 } },
+    select: { paidAmount: true, createdAt: true },
+  });
+
+  const months: { key: string; label: string; revenue: number }[] = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      key: `${d.getFullYear()}-${d.getMonth()}`,
+      label: d.toLocaleString("en-US", { month: "short" }),
+      revenue: 0,
+    });
+  }
+
+  for (const inv of invoices) {
+    const d = new Date(inv.createdAt);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const bucket = months.find((m) => m.key === key);
+    if (bucket) bucket.revenue += inv.paidAmount;
+  }
+
+  res.json(months.map(({ label, revenue }) => ({ month: label, revenue })));
+});
+
+// Deal counts per pipeline stage, in blueprint order - every stage is present
+// even at 0 so the chart shape never implies data that doesn't exist.
+dashboardRouter.get("/pipeline", async (_req, res) => {
+  const stages = ["NEW", "QUALIFIED", "MEETING", "PROPOSAL", "NEGOTIATION", "WON"] as const;
+  const counts = await Promise.all(stages.map((stage) => prisma.deal.count({ where: { stage } })));
+  res.json(stages.map((stage, i) => ({ stage, count: counts[i] })));
 });

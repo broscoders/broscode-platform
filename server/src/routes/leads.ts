@@ -20,7 +20,7 @@ const discoverSchema = z.object({
   quantity: z.number().int().min(1).max(200).default(20),
 });
 
-// AI LEAD FINDER Ã¢â‚¬â€ discovers real businesses via Google Places, enriches
+// AI LEAD FINDER ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â discovers real businesses via Google Places, enriches
 // with a best-effort email lookup, auto-categorizes, and scores each lead.
 leadsRouter.post("/discover", async (req: AuthedRequest, res) => {
   const parsed = discoverSchema.safeParse(req.body);
@@ -209,6 +209,13 @@ leadsRouter.patch("/:id", async (req: AuthedRequest, res) => {
       message: `Lead updated: ${Object.keys(parsed.data).join(", ")}`,
     },
   });
+
+  if (status && ["REPLIED", "DO_NOT_CONTACT", "WON"].includes(status)) {
+    await prisma.followUpTask.updateMany({
+      where: { leadId: lead.id, status: "pending" },
+      data: { status: "stopped" },
+    });
+  }
 
   return res.json(lead);
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Mail, Phone, Globe, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ const statuses = [
 ];
 
 export default function LeadsPage() {
+  const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -154,9 +156,9 @@ export default function LeadsPage() {
                 <tbody>
                   {leads.map((lead) => (
                     <tr key={lead.id} className="border-t border-border hover:bg-surface-2">
-                      <td className="px-5 py-3 font-medium">{lead.businessName}</td>
-                      <td className="px-5 py-3 text-text-muted">{lead.category?.name ?? "Uncategorized"}</td>
-                      <td className="px-5 py-3 text-text-muted">{lead.city ?? "-"}</td>
+                      <td className="cursor-pointer px-5 py-3 font-medium" onClick={() => router.push(`/dashboard/leads/${lead.id}`)}>{lead.businessName}</td>
+                      <td className="cursor-pointer px-5 py-3 text-text-muted" onClick={() => router.push(`/dashboard/leads/${lead.id}`)}>{lead.category?.name ?? "Uncategorized"}</td>
+                      <td className="cursor-pointer px-5 py-3 text-text-muted" onClick={() => router.push(`/dashboard/leads/${lead.id}`)}>{lead.city ?? "-"}</td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2 text-text-muted">
                           {lead.email && <Mail className="h-3.5 w-3.5" />}
