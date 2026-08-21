@@ -103,5 +103,14 @@ ordersRouter.post("/invoices/:invoiceId/payments", async (req, res) => {
     include: { payments: true },
   });
 
+  const admins = await prisma.user.findMany({ where: { role: { in: ["SUPER_ADMIN", "ADMIN"] } } });
+  await prisma.notification.createMany({
+    data: admins.map((a: { id: string }) => ({
+      userId: a.id,
+      type: "payment_received",
+      message: `Payment of $${parsed.data.amount.toLocaleString()} received for invoice ${invoice.invoiceNumber}`,
+    })),
+  });
+
   res.json(updated);
 });

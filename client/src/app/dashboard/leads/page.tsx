@@ -18,7 +18,13 @@ interface Lead {
   score: number;
   priority: string;
   status: string;
+  assignedToId: string | null;
   category: { name: string } | null;
+}
+
+interface TeamMember {
+  id: string;
+  name: string;
 }
 
 const statuses = [
@@ -39,6 +45,7 @@ const statuses = [
 export default function LeadsPage() {
   const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [team, setTeam] = useState<TeamMember[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -49,11 +56,15 @@ export default function LeadsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get<{ total: number; leads: Lead[] }>("/leads", {
-        params: { q: search || undefined, status: statusFilter || undefined, pageSize: 50 },
-      });
-      setLeads(res.data.leads);
-      setTotal(res.data.total);
+      const [leadsRes, teamRes] = await Promise.all([
+        api.get<{ total: number; leads: Lead[] }>("/leads", {
+          params: { q: search || undefined, status: statusFilter || undefined, pageSize: 50 },
+        }),
+        api.get<TeamMember[]>("/team"),
+      ]);
+      setLeads(leadsRes.data.leads);
+      setTotal(leadsRes.data.total);
+      setTeam(teamRes.data);
     } catch {
       setToast("Could not load leads.");
     } finally {
@@ -71,6 +82,16 @@ export default function LeadsPage() {
       await api.patch(`/leads/${id}`, { status });
     } catch {
       setToast("Could not update status.");
+      load();
+    }
+  }
+
+  async function assignLead(id: string, assignedToId: string) {
+    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, assignedToId } : l)));
+    try {
+      await api.patch(`/leads/${id}`, { assignedToId: assignedToId || undefined });
+    } catch {
+      setToast("Could not assign lead.");
       load();
     }
   }
@@ -150,6 +171,7 @@ export default function LeadsPage() {
                     <th className="px-5 py-3 font-medium">Contact</th>
                     <th className="px-5 py-3 font-medium">Score</th>
                     <th className="px-5 py-3 font-medium">Status</th>
+                    <th className="px-5 py-3 font-medium">Assigned</th>
                     <th className="px-5 py-3 font-medium">Action</th>
                   </tr>
                 </thead>
@@ -181,6 +203,20 @@ export default function LeadsPage() {
                           {statuses.map((s) => (
                             <option key={s} value={s}>
                               {s.replace(/_/g, " ")}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-5 py-3">
+                        <select
+                          value={lead.assignedToId ?? ""}
+                          onChange={(e) => assignLead(lead.id, e.target.value)}
+                          className="h-8 rounded-lg border border-border bg-surface-2 px-2 text-xs outline-none"
+                        >
+                          <option value="">Unassigned</option>
+                          {team.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.name}
                             </option>
                           ))}
                         </select>

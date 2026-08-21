@@ -129,5 +129,32 @@ dealsRouter.patch("/:id/stage", async (req: AuthedRequest, res) => {
     await prisma.leadActivity.create({ data: { leadId: deal.leadId, type: "deal_won", message: `Deal won: ${deal.name}` } });
   }
 
+  if (parsed.data.stage === "WON" && deal.assignedToId) {
+    const employee = await prisma.user.findUnique({ where: { id: deal.assignedToId } });
+    if (employee && employee.commissionRate > 0) {
+      const amount =
+        employee.commissionType === "fixed"
+          ? employee.commissionRate
+          : (deal.value * employee.commissionRate) / 100;
+
+      await prisma.commission.create({
+        data: {
+          userId: employee.id,
+          amount,
+          rate: employee.commissionRate,
+          type: employee.commissionType,
+        },
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: employee.id,
+          type: "deal_won",
+          message: `You earned $${amount.toFixed(0)} commission on "${deal.name}"`,
+        },
+      });
+    }
+  }
+
   res.json(deal);
 });
