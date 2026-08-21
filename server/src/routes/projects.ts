@@ -29,6 +29,22 @@ projectsRouter.get("/", async (_req, res) => {
   res.json(withProgress);
 });
 
+projectsRouter.get("/:id", async (req, res) => {
+  const id = String(req.params.id);
+  const project = await prisma.project.findUnique({
+    where: { id },
+    include: {
+      customer: { select: { company: true } },
+      manager: { select: { name: true } },
+      members: { include: { user: { select: { name: true, role: true } } } },
+      tasks: { orderBy: { createdAt: "asc" } },
+      notes: { orderBy: { createdAt: "desc" } },
+    },
+  });
+  if (!project) return res.status(404).json({ error: "Project not found." });
+  res.json(project);
+});
+
 const projectSchema = z.object({
   name: z.string().min(1),
   customerId: z.string().optional(),

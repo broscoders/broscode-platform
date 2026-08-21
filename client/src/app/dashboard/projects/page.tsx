@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, FolderKanban } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ const statusVariant: Record<string, "default" | "success" | "warning" | "neutral
 };
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +61,7 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
-            <Card key={p.id}>
+            <Card key={p.id} className="cursor-pointer hover:border-primary/40" onClick={() => router.push(`/dashboard/projects/${p.id}`)}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-medium">{p.name}</p>

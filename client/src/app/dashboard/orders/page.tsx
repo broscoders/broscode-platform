@@ -21,6 +21,7 @@ interface Order {
     status: string;
     dueDate: string;
   } | null;
+  project: { id: string } | null;
 }
 
 interface Customer {
@@ -132,6 +133,15 @@ export default function OrdersPage() {
     setPaymentTargetInvoiceId(null);
     setPaymentAmount("");
     load();
+  }
+
+  async function createProject(orderId: string) {
+    try {
+      await api.post(`/orders/${orderId}/create-project`);
+      load();
+    } catch {
+      setError("Could not create project for this order.");
+    }
   }
 
   return (
@@ -268,11 +278,18 @@ export default function OrdersPage() {
                         </Badge>
                       </td>
                       <td className="px-5 py-3">
-                        {o.invoice && o.invoice.status !== "paid" && (
-                          <Button size="sm" variant="outline" onClick={() => setPaymentTargetInvoiceId(o.invoice!.id)}>
-                            Record Payment
-                          </Button>
-                        )}
+                        <div className="flex gap-2">
+                          {o.invoice && o.invoice.status !== "paid" && (
+                            <Button size="sm" variant="outline" onClick={() => setPaymentTargetInvoiceId(o.invoice!.id)}>
+                              Record Payment
+                            </Button>
+                          )}
+                          {!o.project && (
+                            <Button size="sm" onClick={() => createProject(o.id)}>
+                              Create Project
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

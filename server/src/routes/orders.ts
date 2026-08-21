@@ -13,9 +13,31 @@ ordersRouter.get("/", async (_req, res) => {
       customer: { select: { company: true } },
       items: true,
       invoice: { include: { payments: true } },
+      project: { select: { id: true } },
     },
   });
   res.json(orders);
+});
+
+ordersRouter.post("/:id/create-project", async (req, res) => {
+  const orderId = String(req.params.id);
+  const order = await prisma.order.findUnique({ where: { id: orderId }, include: { customer: true } });
+  if (!order) return res.status(404).json({ error: "Order not found." });
+
+  const existing = await prisma.project.findUnique({ where: { orderId } });
+  if (existing) return res.status(409).json({ error: "A project already exists for this order." });
+
+  const project = await prisma.project.create({
+    data: {
+      name: `${order.customer.company} - ${order.orderNumber}`,
+      customerId: order.customerId,
+      orderId: order.id,
+      budget: order.total,
+      revenue: order.total,
+    },
+  });
+
+  res.status(201).json(project);
 });
 
 const orderItemSchema = z.object({
