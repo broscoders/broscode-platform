@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Loader2, Archive } from "lucide-react";
+import { Plus, Loader2, Archive, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,15 @@ interface Expense {
   addedBy: { name: string } | null;
 }
 
+interface EmailAccount {
+  id: string;
+  senderName: string;
+  senderEmail: string;
+  provider: string;
+  connectionStatus: string;
+  dailyUsage: number;
+}
+
 const expenseCategories = ["Marketing", "Software", "Hosting", "Salary", "Office", "Other"];
 
 function money(n: number) {
@@ -32,17 +41,26 @@ function money(n: number) {
 export default function SettingsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [emailAccounts, setEmailAccounts] = useState<EmailAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [newCategory, setNewCategory] = useState("");
   const [expenseForm, setExpenseForm] = useState({ name: "", category: "Marketing", amount: "" });
   const [savingExpense, setSavingExpense] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailForm, setEmailForm] = useState({ senderName: "", senderEmail: "" });
+  const [savingEmail, setSavingEmail] = useState(false);
 
   function load() {
     setLoading(true);
-    Promise.all([api.get<Category[]>("/categories"), api.get<Expense[]>("/expenses")])
-      .then(([c, e]) => {
+    Promise.all([
+      api.get<Category[]>("/categories"),
+      api.get<Expense[]>("/expenses"),
+      api.get<EmailAccount[]>("/email-accounts"),
+    ])
+      .then(([c, e, ea]) => {
         setCategories(c.data);
         setExpenses(e.data);
+        setEmailAccounts(ea.data);
       })
       .finally(() => setLoading(false));
   }
@@ -76,6 +94,20 @@ export default function SettingsPage() {
     }
   }
 
+  async function connectEmailAccount(e: React.FormEvent) {
+    e.preventDefault();
+    if (!emailForm.senderName.trim() || !emailForm.senderEmail.trim()) return;
+    setSavingEmail(true);
+    try {
+      await api.post("/email-accounts", { ...emailForm, provider: "resend" });
+      setEmailForm({ senderName: "", senderEmail: "" });
+      setShowEmailForm(false);
+      load();
+    } finally {
+      setSavingEmail(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -88,7 +120,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-text-muted">Manage lead categories and track business expenses.</p>
+        <p className="text-sm text-text-muted">Categories, email accounts, and business expenses.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -133,45 +165,97 @@ export default function SettingsPage() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="bracket-marker">Add Expense</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="bracket-marker">Email Accounts</CardTitle>
+            <Button size="sm" onClick={() => setShowEmailForm((v) => !v)} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" />
+              Connect
+            </Button>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={addExpense} className="space-y-3">
-              <input
-                value={expenseForm.name}
-                onChange={(e) => setExpenseForm({ ...expenseForm, name: e.target.value })}
-                placeholder="Expense name"
-                className="h-9 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary"
-              />
-              <div className="flex gap-2">
-                <select
-                  value={expenseForm.category}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                  className="h-9 flex-1 rounded-lg border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary"
-                >
-                  {expenseCategories.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+          <CardContent className="space-y-3">
+            {showEmailForm && (
+              <form onSubmit={connectEmailAccount} className="space-y-2 rounded-lg border border-border p-3">
                 <input
-                  type="number"
-                  min={0}
-                  value={expenseForm.amount}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                  placeholder="Amount"
-                  className="h-9 w-28 rounded-lg border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary"
+                  value={emailForm.senderName}
+                  onChange={(e) => setEmailForm({ ...emailForm, senderName: e.target.value })}
+                  placeholder="Sender name (e.g. Bro's Code)"
+                  className="h-9 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary"
                 />
+                <input
+                  value={emailForm.senderEmail}
+                  onChange={(e) => setEmailForm({ ...emailForm, senderEmail: e.target.value })}
+                  placeholder="sender@yourdomain.com"
+                  className="h-9 w-full rounded-lg border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary"
+                />
+                <p className="text-xs text-text-muted">
+                  Uses Resend under the hood - make sure RESEND_API_KEY is set in your server .env.
+                </p>
+                <Button type="submit" size="sm" disabled={savingEmail}>
+                  {savingEmail ? "Connecting..." : "Save"}
+                </Button>
+              </form>
+            )}
+            {emailAccounts.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-6 text-center">
+                <Mail className="h-6 w-6 text-text-muted" />
+                <p className="text-sm text-text-muted">No email account connected yet.</p>
               </div>
-              <Button type="submit" disabled={savingExpense} className="w-full">
-                {savingExpense ? "Adding..." : "Add Expense"}
-              </Button>
-            </form>
+            ) : (
+              <div className="space-y-2">
+                {emailAccounts.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2">
+                    <div>
+                      <p className="text-sm font-medium">{a.senderName}</p>
+                      <p className="text-xs text-text-muted">{a.senderEmail}</p>
+                    </div>
+                    <Badge variant={a.connectionStatus === "connected" ? "success" : "neutral"}>
+                      {a.connectionStatus}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="bracket-marker">Add Expense</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={addExpense} className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <input
+              value={expenseForm.name}
+              onChange={(e) => setExpenseForm({ ...expenseForm, name: e.target.value })}
+              placeholder="Expense name"
+              className="h-9 rounded-lg border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary sm:col-span-2"
+            />
+            <select
+              value={expenseForm.category}
+              onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+              className="h-9 rounded-lg border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary"
+            >
+              {expenseCategories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min={0}
+              value={expenseForm.amount}
+              onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+              placeholder="Amount"
+              className="h-9 rounded-lg border border-border bg-surface-2 px-3 text-sm outline-none focus:border-primary"
+            />
+            <Button type="submit" disabled={savingExpense} className="sm:col-span-4">
+              {savingExpense ? "Adding..." : "Add Expense"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

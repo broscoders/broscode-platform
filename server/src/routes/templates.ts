@@ -74,6 +74,28 @@ templatesRouter.patch("/:id/status", async (req, res) => {
   res.json(template);
 });
 
+templatesRouter.post("/:id/duplicate", async (req, res) => {
+  const original = await prisma.emailTemplate.findUnique({ where: { id: req.params.id } });
+  if (!original) return res.status(404).json({ error: "Template not found." });
+
+  const copy = await prisma.emailTemplate.create({
+    data: {
+      name: `${original.name} (Copy)`,
+      categoryId: original.categoryId,
+      subject: original.subject,
+      body: original.body,
+      status: "inactive",
+      versions: { create: { version: 1, subject: original.subject, body: original.body } },
+    },
+  });
+  res.status(201).json(copy);
+});
+
+templatesRouter.delete("/:id", async (req, res) => {
+  await prisma.emailTemplate.delete({ where: { id: req.params.id } });
+  res.status(204).end();
+});
+
 // ONE-CLICK EMAIL: category is checked, active template auto-selected,
 // lead data merged in, and the send is logged with the exact version used.
 emailRouter.post("/send/:leadId", async (req: AuthedRequest, res) => {
@@ -93,13 +115,13 @@ emailRouter.post("/send/:leadId", async (req: AuthedRequest, res) => {
   });
   if (!template) {
     return res.status(400).json({
-      error: `No active email template for category "${lead.category?.name}". Create one in Settings â†’ Email Templates.`,
+      error: `No active email template for category "${lead.category?.name}". Create one in Settings Ã¢â€ â€™ Email Templates.`,
     });
   }
 
   const account = await prisma.emailAccount.findFirst({ where: { connectionStatus: "connected" } });
   if (!account) {
-    return res.status(400).json({ error: "No connected email account. Connect one in Settings â†’ Email Accounts." });
+    return res.status(400).json({ error: "No connected email account. Connect one in Settings Ã¢â€ â€™ Email Accounts." });
   }
 
   const vars = {
