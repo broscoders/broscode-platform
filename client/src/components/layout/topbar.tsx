@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bell, Search, Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 interface SearchResults {
   leads: { id: string; businessName: string; status: string }[];
@@ -26,6 +27,7 @@ const emptyResults: SearchResults = { leads: [], customers: [], deals: [], proje
 
 export function Topbar() {
   const router = useRouter();
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults>(emptyResults);
   const [searching, setSearching] = useState(false);
@@ -224,11 +226,11 @@ export function Topbar() {
         <ThemeToggle />
         <div className="flex items-center gap-2 pl-2 border-l border-border">
           <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center font-display text-sm font-semibold">
-            A
+            {user?.name?.charAt(0).toUpperCase() ?? "A"}
           </div>
           <div className="hidden lg:block leading-tight">
-            <p className="text-sm font-medium">Admin</p>
-            <p className="text-[11px] text-text-muted">Super Admin</p>
+            <p className="text-sm font-medium">{user?.name ?? "..."}</p>
+            <p className="text-[11px] text-text-muted">{user?.role.replace("_", " ") ?? ""}</p>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
-import { requireAuth, type AuthedRequest } from "../middleware/auth";
+import { requireAuth, requireRole, type AuthedRequest } from "../middleware/auth";
 
 export const expensesRouter = Router();
 expensesRouter.use(requireAuth);
@@ -39,7 +39,7 @@ expensesRouter.post("/", async (req: AuthedRequest, res) => {
   res.status(201).json(expense);
 });
 
-expensesRouter.delete("/:id", async (req, res) => {
+expensesRouter.delete("/:id", requireRole("SUPER_ADMIN", "ADMIN"), async (req, res) => {
   await prisma.expense.delete({ where: { id: String(req.params.id) } });
   res.status(204).end();
 });

@@ -21,6 +21,7 @@ export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  adminOnly?: boolean;
 }
 
 export interface NavGroup {
@@ -53,12 +54,12 @@ export const navGroups: NavGroup[] = [
     label: "Delivery",
     items: [
       { label: "Projects", href: "/dashboard/projects", icon: FolderKanban },
-      { label: "Team", href: "/dashboard/team", icon: UsersRound },
+      { label: "Team", href: "/dashboard/team", icon: UsersRound, adminOnly: true },
     ],
   },
   {
     label: "Finance",
-    items: [{ label: "Revenue & Expenses", href: "/dashboard/settings", icon: Wallet }],
+    items: [{ label: "Revenue & Expenses", href: "/dashboard/settings", icon: Wallet, adminOnly: true }],
   },
   {
     label: "Insights",
@@ -71,8 +72,8 @@ export const navGroups: NavGroup[] = [
   {
     label: "System",
     items: [
-      { label: "Settings", href: "/dashboard/settings", icon: Settings },
-      { label: "Audit Log", href: "/dashboard/audit", icon: History },
+      { label: "Settings", href: "/dashboard/settings", icon: Settings, adminOnly: true },
+      { label: "Audit Log", href: "/dashboard/audit", icon: History, adminOnly: true },
     ],
   },
 ];
