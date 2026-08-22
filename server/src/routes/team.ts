@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth, requireRole, type AuthedRequest } from "../middleware/auth";
+import { logAction } from "./audit";
 
 export const teamRouter = Router();
 teamRouter.use(requireAuth);
@@ -63,6 +64,8 @@ teamRouter.post("/", requireRole("SUPER_ADMIN", "ADMIN"), async (req: AuthedRequ
   });
 
   res.status(201).json(user);
+
+  await logAction({ userId: req.user?.userId, action: "User created", recordType: "User", recordId: user.id });
 });
 
 const updateSchema = z.object({

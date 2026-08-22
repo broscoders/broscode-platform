@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
+import { logAction } from "./audit";
 
 export const customersRouter = Router();
 export const dealsRouter = Router();
@@ -155,6 +156,8 @@ dealsRouter.patch("/:id/stage", async (req: AuthedRequest, res) => {
       });
     }
   }
+
+  await logAction({ userId: req.user?.userId, action: `Deal stage changed to ${parsed.data.stage}`, recordType: "Deal", recordId: id });
 
   res.json(deal);
 });

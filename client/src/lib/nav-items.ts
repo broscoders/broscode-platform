@@ -12,6 +12,7 @@ import {
   BarChart3,
   CalendarDays,
   Settings,
+  History,
   Bot,
   Mail,
 } from "lucide-react";
@@ -57,7 +58,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: "Finance",
-    items: [{ label: "Revenue & Expenses", href: "/dashboard/finance", icon: Wallet }],
+    items: [{ label: "Revenue & Expenses", href: "/dashboard/settings", icon: Wallet }],
   },
   {
     label: "Insights",
@@ -69,6 +70,9 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: "System",
-    items: [{ label: "Settings", href: "/dashboard/settings", icon: Settings }],
+    items: [
+      { label: "Settings", href: "/dashboard/settings", icon: Settings },
+      { label: "Audit Log", href: "/dashboard/audit", icon: History },
+    ],
   },
 ];

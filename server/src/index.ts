@@ -22,6 +22,7 @@ import { analyticsRouter } from "./routes/analytics";
 import { searchRouter } from "./routes/search";
 import { notificationsRouter } from "./routes/notifications";
 import { calendarRouter } from "./routes/calendar";
+import { auditRouter } from "./routes/audit";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -62,6 +63,7 @@ app.use("/api/analytics", analyticsRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/calendar", calendarRouter);
+app.use("/api/audit", auditRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

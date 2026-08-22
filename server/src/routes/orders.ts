@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, type AuthedRequest } from "../middleware/auth";
+import { logAction } from "./audit";
 
 export const ordersRouter = Router();
 ordersRouter.use(requireAuth);
@@ -60,7 +61,7 @@ function generateNumber(prefix: string) {
   return `${prefix}-${stamp}`;
 }
 
-ordersRouter.post("/", async (req, res) => {
+ordersRouter.post("/", async (req: AuthedRequest, res) => {
   const parsed = orderSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid order data." });
 
@@ -99,6 +100,8 @@ ordersRouter.post("/", async (req, res) => {
   }
 
   res.status(201).json({ order, invoice });
+
+  await logAction({ userId: req.user?.userId, action: "Order created", recordType: "Order", recordId: order.id });
 });
 
 const paymentSchema = z.object({
