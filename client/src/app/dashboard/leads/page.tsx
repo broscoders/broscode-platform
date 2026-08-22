@@ -52,6 +52,11 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkAssignTo, setBulkAssignTo] = useState("");
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkTag, setBulkTag] = useState("");
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,6 +70,7 @@ export default function LeadsPage() {
       setLeads(leadsRes.data.leads);
       setTotal(leadsRes.data.total);
       setTeam(teamRes.data);
+      setSelected(new Set());
     } catch {
       setToast("Could not load leads.");
     } finally {
@@ -112,6 +118,36 @@ export default function LeadsPage() {
     }
   }
 
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelected((prev) => (prev.size === leads.length ? new Set() : new Set(leads.map((l) => l.id))));
+  }
+
+  async function runBulk(action: "assign" | "status" | "tag" | "archive", value?: string) {
+    if (selected.size === 0) return;
+    setBulkBusy(true);
+    try {
+      await api.post("/leads/bulk", { leadIds: Array.from(selected), action, value });
+      setToast(`Bulk ${action} applied to ${selected.size} lead${selected.size === 1 ? "" : "s"}.`);
+      setBulkAssignTo("");
+      setBulkStatus("");
+      setBulkTag("");
+      load();
+    } catch {
+      setToast("Bulk action failed.");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -150,6 +186,67 @@ export default function LeadsPage() {
         </div>
       )}
 
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+          <span className="text-sm font-medium">{selected.size} selected</span>
+
+          <select
+            value={bulkAssignTo}
+            onChange={(e) => {
+              setBulkAssignTo(e.target.value);
+              runBulk("assign", e.target.value);
+            }}
+            className="h-8 rounded-lg border border-border bg-surface px-2 text-xs outline-none"
+            disabled={bulkBusy}
+          >
+            <option value="">Assign to...</option>
+            {team.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={bulkStatus}
+            onChange={(e) => {
+              setBulkStatus(e.target.value);
+              if (e.target.value) runBulk("status", e.target.value);
+            }}
+            className="h-8 rounded-lg border border-border bg-surface px-2 text-xs outline-none"
+            disabled={bulkBusy}
+          >
+            <option value="">Change status...</option>
+            {statuses.map((s) => (
+              <option key={s} value={s}>
+                {s.replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+
+          <div className="flex items-center gap-1">
+            <input
+              value={bulkTag}
+              onChange={(e) => setBulkTag(e.target.value)}
+              placeholder="Add tag..."
+              className="h-8 w-28 rounded-lg border border-border bg-surface px-2 text-xs outline-none"
+              disabled={bulkBusy}
+            />
+            <Button size="sm" variant="outline" disabled={bulkBusy || !bulkTag.trim()} onClick={() => runBulk("tag", bulkTag)}>
+              Tag
+            </Button>
+          </div>
+
+          <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => runBulk("archive")}>
+            Mark Do Not Contact
+          </Button>
+
+          <button onClick={() => setSelected(new Set())} className="ml-auto text-xs text-text-muted hover:text-text">
+            Clear selection
+          </button>
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-0">
           {loading ? (
@@ -165,6 +262,9 @@ export default function LeadsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-t border-border text-left text-xs uppercase tracking-wide text-text-muted">
+                    <th className="w-10 px-5 py-3">
+                      <input type="checkbox" checked={selected.size === leads.length} onChange={toggleAll} />
+                    </th>
                     <th className="px-5 py-3 font-medium">Business</th>
                     <th className="px-5 py-3 font-medium">Category</th>
                     <th className="px-5 py-3 font-medium">City</th>
@@ -178,6 +278,9 @@ export default function LeadsPage() {
                 <tbody>
                   {leads.map((lead) => (
                     <tr key={lead.id} className="border-t border-border hover:bg-surface-2">
+                      <td className="px-5 py-3">
+                        <input type="checkbox" checked={selected.has(lead.id)} onChange={() => toggleOne(lead.id)} />
+                      </td>
                       <td className="cursor-pointer px-5 py-3 font-medium" onClick={() => router.push(`/dashboard/leads/${lead.id}`)}>{lead.businessName}</td>
                       <td className="cursor-pointer px-5 py-3 text-text-muted" onClick={() => router.push(`/dashboard/leads/${lead.id}`)}>{lead.category?.name ?? "Uncategorized"}</td>
                       <td className="cursor-pointer px-5 py-3 text-text-muted" onClick={() => router.push(`/dashboard/leads/${lead.id}`)}>{lead.city ?? "-"}</td>

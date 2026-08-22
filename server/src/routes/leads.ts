@@ -20,7 +20,7 @@ const discoverSchema = z.object({
   quantity: z.number().int().min(1).max(200).default(20),
 });
 
-// AI LEAD FINDER ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â discovers real businesses via Google Places, enriches
+// AI LEAD FINDER ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â discovers real businesses via Google Places, enriches
 // with a best-effort email lookup, auto-categorizes, and scores each lead.
 leadsRouter.post("/discover", async (req: AuthedRequest, res) => {
   const parsed = discoverSchema.safeParse(req.body);
