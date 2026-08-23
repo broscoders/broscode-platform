@@ -24,8 +24,11 @@ export default function RegisterPage() {
     try {
       await register(name, email, password);
       router.push("/dashboard");
-    } catch {
-      setError("Could not create account. Try a different email.");
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+        "Could not create account. Please try again.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -68,14 +71,14 @@ export default function RegisterPage() {
               type="password"
               required
               minLength={8}
-              placeholder="••••••••"
+              placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
           {error && <p className="text-xs text-danger">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating…" : "Create account"}
+            {loading ? "Creatingâ€¦" : "Create account"}
           </Button>
         </form>
 
