@@ -78,6 +78,20 @@ projectsRouter.patch("/:id/status", async (req, res) => {
   const parsed = statusSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Invalid status." });
   const project = await prisma.project.update({ where: { id }, data: { status: parsed.data.status } });
+
+  if (parsed.data.status === "COMPLETED") {
+    const members = await prisma.projectMember.findMany({ where: { projectId: id } });
+    if (members.length > 0) {
+      await prisma.notification.createMany({
+        data: members.map((m: { userId: string }) => ({
+          userId: m.userId,
+          type: "project_completed",
+          message: `Project completed: ${project.name}`,
+        })),
+      });
+    }
+  }
+
   res.json(project);
 });
 
@@ -108,6 +122,16 @@ projectsRouter.post("/:id/tasks", async (req, res) => {
   const task = await prisma.projectTask.create({
     data: { projectId, ...rest, deadline: deadline ? new Date(deadline) : undefined },
   });
+
+  if (rest.assignedTo) {
+    await prisma.notification.create({
+      data: {
+        userId: rest.assignedTo,
+        type: "task_assigned",
+        message: `You were assigned a task: ${task.title}`,
+      },
+    });
+  }
   res.status(201).json(task);
 });
 

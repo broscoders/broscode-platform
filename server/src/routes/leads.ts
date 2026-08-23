@@ -20,7 +20,7 @@ const discoverSchema = z.object({
   quantity: z.number().int().min(1).max(200).default(20),
 });
 
-// AI LEAD FINDER ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â discovers real businesses via Google Places, enriches
+// AI LEAD FINDER ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â discovers real businesses via Google Places, enriches
 // with a best-effort email lookup, auto-categorizes, and scores each lead.
 leadsRouter.post("/discover", async (req: AuthedRequest, res) => {
   const parsed = discoverSchema.safeParse(req.body);
@@ -82,6 +82,17 @@ leadsRouter.post("/discover", async (req: AuthedRequest, res) => {
       },
     });
     created.push(lead);
+  }
+
+  if (created.length > 0) {
+    const admins = await prisma.user.findMany({ where: { role: { in: ["SUPER_ADMIN", "ADMIN"] } } });
+    await prisma.notification.createMany({
+      data: admins.map((a: { id: string }) => ({
+        userId: a.id,
+        type: "new_leads",
+        message: `${created.length} new lead${created.length === 1 ? "" : "s"} discovered (${industry} in ${city})`,
+      })),
+    });
   }
 
   return res.status(201).json({
@@ -214,6 +225,16 @@ leadsRouter.patch("/:id", async (req: AuthedRequest, res) => {
     await prisma.followUpTask.updateMany({
       where: { leadId: lead.id, status: "pending" },
       data: { status: "stopped" },
+    });
+  }
+
+  if (assignedToId) {
+    await prisma.notification.create({
+      data: {
+        userId: assignedToId,
+        type: "lead_assigned",
+        message: `You were assigned lead: ${lead.businessName}`,
+      },
     });
   }
 
