@@ -63,7 +63,7 @@ export default function LeadFinderPage() {
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-xl font-semibold tracking-tight">AI Lead Finder</h1>
-        <p className="text-sm text-text-muted">Discover real businesses via Google Places. We never invent emails or phone numbers.</p>
+        <p className="text-sm text-text-muted">Discover real businesses via OpenStreetMap. We never invent emails or phone numbers.</p>
       </div>
 
       <Card>

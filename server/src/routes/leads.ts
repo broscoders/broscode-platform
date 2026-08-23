@@ -20,7 +20,7 @@ const discoverSchema = z.object({
   quantity: z.number().int().min(1).max(200).default(20),
 });
 
-// AI LEAD FINDER ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â discovers real businesses via Google Places, enriches
+// AI LEAD FINDER ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â discovers real businesses via OpenStreetMap, enriches
 // with a best-effort email lookup, auto-categorizes, and scores each lead.
 leadsRouter.post("/discover", async (req: AuthedRequest, res) => {
   const parsed = discoverSchema.safeParse(req.body);
@@ -37,8 +37,8 @@ leadsRouter.post("/discover", async (req: AuthedRequest, res) => {
   }
 
   const source = await prisma.leadSource.upsert({
-    where: { name: "Google Places" },
-    create: { name: "Google Places" },
+    where: { name: "OpenStreetMap" },
+    create: { name: "OpenStreetMap" },
     update: {},
   });
 
@@ -51,7 +51,7 @@ leadsRouter.post("/discover", async (req: AuthedRequest, res) => {
     if (existing) continue;
 
     const email = await enrichEmailFromWebsite(place.website);
-    const categoryName = inferCategoryName(place.googleTypes, industry);
+    const categoryName = inferCategoryName(place.osmTypes, industry);
     const category = await prisma.category.upsert({
       where: { name: categoryName },
       create: { name: categoryName },
@@ -78,7 +78,7 @@ leadsRouter.post("/discover", async (req: AuthedRequest, res) => {
         score,
         priority,
         status: "NEW",
-        activities: { create: { type: "discovered", message: "Lead discovered via Google Places." } },
+        activities: { create: { type: "discovered", message: "Lead discovered via OpenStreetMap." } },
       },
     });
     created.push(lead);
