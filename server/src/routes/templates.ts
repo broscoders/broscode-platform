@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
-import { getResendClient, fillTemplate } from "../lib/email";
+import { getMailTransporter, fillTemplate } from "../lib/email";
 
 export const templatesRouter = Router();
 export const emailRouter = Router();
@@ -115,13 +115,13 @@ emailRouter.post("/send/:leadId", async (req: AuthedRequest, res) => {
   });
   if (!template) {
     return res.status(400).json({
-      error: `No active email template for category "${lead.category?.name}". Create one in Settings Ã¢â€ â€™ Email Templates.`,
+      error: `No active email template for category "${lead.category?.name}". Create one in Settings ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Email Templates.`,
     });
   }
 
   const account = await prisma.emailAccount.findFirst({ where: { connectionStatus: "connected" } });
   if (!account) {
-    return res.status(400).json({ error: "No connected email account. Connect one in Settings Ã¢â€ â€™ Email Accounts." });
+    return res.status(400).json({ error: "No connected email account. Connect one in Settings ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Email Accounts." });
   }
 
   const vars = {
@@ -138,9 +138,9 @@ emailRouter.post("/send/:leadId", async (req: AuthedRequest, res) => {
   const html = fillTemplate(template.body, vars);
 
   try {
-    const resend = getResendClient();
-    await resend.emails.send({
-      from: `${account.senderName} <${account.senderEmail}>`,
+    const mailer = getMailTransporter();
+    await mailer.sendMail({
+      from: `${account.senderName} <${process.env.GMAIL_USER}>`,
       to: lead.email,
       subject,
       html,

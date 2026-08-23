@@ -1,17 +1,26 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-let client: Resend | null = null;
+let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
-export function getResendClient() {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    throw new Error("RESEND_API_KEY is not set. Add it to server/.env — see README for setup.");
+export function getMailTransporter() {
+  const host = process.env.SMTP_HOST || "smtp.gmail.com";
+  const port = Number(process.env.SMTP_PORT) || 587;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!user || !pass) {
+    throw new Error("SMTP_USER and SMTP_PASS are not set. Add them to server/.env.");
   }
-  if (!client) client = new Resend(apiKey);
-  return client;
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: false,
+      auth: { user, pass },
+    });
+  }
+  return transporter;
 }
 
-// Replaces {{business_name}}, {{contact_name}}, etc. with real lead data only.
 export function fillTemplate(template: string, vars: Record<string, string | null | undefined>) {
   return template.replace(/{{\s*(\w+)\s*}}/g, (_match, key: string) => vars[key] || "");
 }
