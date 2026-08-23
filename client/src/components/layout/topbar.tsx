@@ -89,7 +89,7 @@ export function Topbar() {
   }
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-6">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border bg-surface px-6 pl-16 md:pl-6">
       <div ref={searchBoxRef} className="relative w-full max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
         <input

@@ -1,18 +1,20 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navGroups } from "@/lib/nav-items";
 import { useAuth } from "@/lib/auth-context";
 
-export function Sidebar() {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { isAdmin, loading } = useAuth();
 
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border bg-surface">
+    <>
       <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
         <div className="relative h-9 w-9 overflow-hidden rounded-lg">
           <Image src="/logo.jpg" alt="Bro's Code" fill className="object-cover" />
@@ -40,6 +42,7 @@ export function Sidebar() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={onNavigate}
                       className={cn(
                         "group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors relative",
                         active
@@ -67,6 +70,47 @@ export function Sidebar() {
       <div className="border-t border-border p-4">
         <p className="text-[10px] text-text-muted">We code your ideas.</p>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function Sidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  return (
+    <>
+      <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-border bg-surface">
+        <SidebarContent />
+      </aside>
+
+      <button
+        aria-label="Open menu"
+        onClick={() => setMobileOpen(true)}
+        className="md:hidden fixed left-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-surface text-text shadow-sm"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
+          <aside className="relative flex w-72 max-w-[85vw] flex-col bg-surface border-r border-border">
+            <button
+              aria-label="Close menu"
+              onClick={() => setMobileOpen(false)}
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-surface-2 hover:text-text"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <SidebarContent onNavigate={() => setMobileOpen(false)} />
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
