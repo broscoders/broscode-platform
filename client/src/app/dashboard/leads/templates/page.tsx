@@ -129,8 +129,14 @@ export default function TemplatesPage() {
 
   async function remove(id: string) {
     if (!confirm("Delete this template? This cannot be undone.")) return;
-    await api.delete(`/templates/${id}`);
-    load();
+    try {
+      await api.delete(`/templates/${id}`);
+      load();
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Could not delete template.";
+      alert(message);
+    }
   }
 
   return (

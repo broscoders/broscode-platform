@@ -92,7 +92,10 @@ templatesRouter.post("/:id/duplicate", async (req, res) => {
 });
 
 templatesRouter.delete("/:id", async (req, res) => {
-  await prisma.emailTemplate.delete({ where: { id: req.params.id } });
+  const id = req.params.id;
+  await prisma.emailTemplateVersion.deleteMany({ where: { templateId: id } });
+  await prisma.emailLog.updateMany({ where: { templateId: id }, data: { templateId: null } });
+  await prisma.emailTemplate.delete({ where: { id } });
   res.status(204).end();
 });
 
@@ -115,13 +118,13 @@ emailRouter.post("/send/:leadId", async (req: AuthedRequest, res) => {
   });
   if (!template) {
     return res.status(400).json({
-      error: `No active email template for category "${lead.category?.name}". Create one in Settings ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Email Templates.`,
+      error: `No active email template for category "${lead.category?.name}". Create one in Settings ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ Email Templates.`,
     });
   }
 
   const account = await prisma.emailAccount.findFirst({ where: { connectionStatus: "connected" } });
   if (!account) {
-    return res.status(400).json({ error: "No connected email account. Connect one in Settings ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ Email Accounts." });
+    return res.status(400).json({ error: "No connected email account. Connect one in Settings ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢ Email Accounts." });
   }
 
   const vars = {
