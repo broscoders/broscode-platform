@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,6 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen w-full">
-      {/* Brand side */}
       <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-surface p-10 lg:flex">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,152,255,0.15),transparent_45%)]" />
         <div className="relative flex items-center gap-3">
@@ -48,14 +46,13 @@ export default function LoginPage() {
             Every deal, tracked.
           </p>
           <p className="mt-3 max-w-sm text-sm text-text-muted">
-            Lead generation, outreach, CRM, sales, projects and revenue — run the whole business from
+            Lead generation, outreach, CRM, sales, projects and revenue - run the whole business from
             a single command center.
           </p>
         </div>
         <p className="relative font-data text-xs text-text-muted">{"<"} We code your ideas {"/>"}</p>
       </div>
 
-      {/* Form side */}
       <div className="flex w-full flex-col items-center justify-center px-6 lg:w-1/2">
         <div className="absolute right-6 top-6">
           <ThemeToggle />
@@ -87,23 +84,16 @@ export default function LoginPage() {
               <Input
                 type="password"
                 required
-                placeholder="••••••••"
+                placeholder="********"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
             {error && <p className="text-xs text-danger">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-
-          <p className="mt-6 text-center text-xs text-text-muted">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary hover:underline">
-              Create one
-            </Link>
-          </p>
         </div>
       </div>
     </div>

@@ -1,8 +1,29 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  const existingAdminCount = await prisma.user.count();
+  if (existingAdminCount === 0) {
+    const email = process.env.SEED_ADMIN_EMAIL || "admin@broscode.local";
+    const password = process.env.SEED_ADMIN_PASSWORD || "ChangeMe123!";
+    const name = process.env.SEED_ADMIN_NAME || "Super Admin";
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    await prisma.user.create({
+      data: { name, email, passwordHash, role: "SUPER_ADMIN" },
+    });
+
+    console.log(`\nCreated Super Admin account:`);
+    console.log(`    Email:    ${email}`);
+    console.log(`    Password: ${password}`);
+    console.log(`    Log in and change this password immediately, or set`);
+    console.log(`    SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD in .env before seeding for a custom one.\n`);
+  } else {
+    console.log("Admin account already exists - skipping bootstrap.");
+  }
+
   const categories = ["Restaurant", "Dental", "Real Estate", "Fitness", "Software", "Healthcare", "Legal", "Beauty & Salon"];
   for (const name of categories) {
     await prisma.category.upsert({ where: { name }, create: { name }, update: {} });

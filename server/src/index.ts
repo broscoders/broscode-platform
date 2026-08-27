@@ -43,8 +43,18 @@ app.use(
   })
 );
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts. Please wait a few minutes and try again." },
+});
+
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
 app.use("/api/auth", authRouter);
 app.use("/api/leads", leadsRouter);
 app.use("/api/categories", categoriesRouter);

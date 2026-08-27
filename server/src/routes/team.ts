@@ -56,7 +56,7 @@ teamRouter.post("/", requireRole("SUPER_ADMIN", "ADMIN"), async (req: AuthedRequ
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existing) return res.status(409).json({ error: "A user with this email already exists." });
 
-  const passwordHash = await bcrypt.hash(parsed.data.password, 10);
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
   const { password: _password, ...rest } = parsed.data;
   const user = await prisma.user.create({
     data: { ...rest, passwordHash },
