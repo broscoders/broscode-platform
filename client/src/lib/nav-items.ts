@@ -15,6 +15,7 @@ import {
   History,
   Bot,
   Mail,
+  PhoneCall,
 } from "lucide-react";
 
 export interface NavItem {
@@ -40,6 +41,7 @@ export const navGroups: NavGroup[] = [
       { label: "AI Lead Finder", href: "/dashboard/leads/finder", icon: Radar },
       { label: "All Leads", href: "/dashboard/leads", icon: Users },
       { label: "Email Templates", href: "/dashboard/leads/templates", icon: Mail },
+      { label: "Cold Calling", href: "/dashboard/calls", icon: PhoneCall },
     ],
   },
   {

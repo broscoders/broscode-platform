@@ -133,6 +133,28 @@ Your platform is live. Open the client's production URL and register the Super A
 - Admin dashboard UI — dark/light mode, all 16 KPI cards, revenue + pipeline charts, recent leads table
 - Sidebar/topbar shell with placeholders for every module so nothing 404s while the rest is built
 
+## 5b. AI Cold Calling (new)
+
+The AI agent picks up leads that have a phone number, places a real outbound call, and has a live spoken conversation — no human on the line. Interested leads are auto-tagged in the CRM (status → `INTERESTED`) with the call summary logged on the lead's timeline.
+
+**How it works (no extra paid AI voice services needed — keeps cost to just the phone call itself):**
+- **Telephony + Speech-to-Text + Text-to-Speech**: all handled by Twilio's built-in `<Gather input="speech">` and `<Say>` — no separate STT/TTS bill.
+- **The conversation brain**: Groq (already used elsewhere in this app) — free tier, fast enough for a live call.
+- **Data**: every turn is saved to the `Call` model; when the call ends, Twilio's status webhook triggers an AI summary and updates the lead.
+
+**Setup (free to start):**
+1. Sign up at [twilio.com/try-twilio](https://www.twilio.com/try-twilio) — no credit card needed for the trial, you get ~$15 free credit and one free phone number.
+2. Console → copy your **Account SID** and **Auth Token** into `server/.env`.
+3. Console → Phone Numbers → your trial number → paste it into `TWILIO_PHONE_NUMBER` (E.164 format, e.g. `+1415XXXXXXX`).
+4. Twilio needs a public URL to send call webhooks to:
+   - **Local dev**: install [ngrok](https://ngrok.com), run `ngrok http 4000`, paste the `https://...ngrok-free.app` URL into `SERVER_PUBLIC_URL`.
+   - **Production**: use your deployed API's Vercel URL.
+5. Get a free `GROQ_API_KEY` at [console.groq.com](https://console.groq.com) if you haven't already.
+6. **Trial account limitation**: Twilio trial accounts can only call numbers you've manually verified in the Console (Phone Numbers → Verified Caller IDs) — fine for testing your own number, but real leads' numbers won't connect until you add a payment method (pay-as-you-go, no monthly fee — you only pay per minute + ~$1/month for the number).
+7. Calling Pakistani mobile numbers costs more per minute than US/local numbers on Twilio — check current rates at [twilio.com/en-us/pricing](https://www.twilio.com/en-us/pricing) before running a real campaign, since there's no genuinely free way to place real phone calls at volume.
+
+Open **Cold Calling** in the sidebar, tick leads with a phone number, hit **Call Leads**. Run `npx prisma generate && npx prisma db push` once first to sync the new `Call` model to your database.
+
 ## 6. Roadmap (next build stages)
 
 - **Day 2:** Claude-powered lead scoring & categorization, follow-up sequences, lead activity timeline UI, template editor UI, bulk lead actions

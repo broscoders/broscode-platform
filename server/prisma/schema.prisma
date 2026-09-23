@@ -108,6 +108,44 @@ model Lead {
   notes           Note[]
   deals           Deal[]
   customer        Customer?
+  calls           Call[]
+}
+
+enum CallStatus {
+  QUEUED
+  RINGING
+  IN_PROGRESS
+  COMPLETED
+  NO_ANSWER
+  BUSY
+  FAILED
+  VOICEMAIL
+}
+
+enum CallOutcome {
+  INTERESTED
+  NOT_INTERESTED
+  CALLBACK_REQUESTED
+  WRONG_NUMBER
+  UNDETERMINED
+}
+
+model Call {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  leadId          String       @db.ObjectId
+  twilioCallSid   String?      @unique
+  status          CallStatus   @default(QUEUED)
+  outcome         CallOutcome?
+  transcript      Json?
+  summary         String?
+  durationSeconds Int?
+  initiatedById   String?      @db.ObjectId
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  lead            Lead         @relation(fields: [leadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model LeadActivity {
