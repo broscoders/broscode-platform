@@ -61,7 +61,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: "Finance",
-    items: [{ label: "Revenue & Expenses", href: "/dashboard/settings", icon: Wallet, adminOnly: true }],
+    items: [{ label: "Revenue & Expenses", href: "/dashboard/finance", icon: Wallet, adminOnly: true }],
   },
   {
     label: "Insights",
