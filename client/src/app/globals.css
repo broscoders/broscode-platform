@@ -2,6 +2,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --font-space-grotesk: "Space Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-inter: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-jetbrains-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
   --bg: 245 247 251;
   --surface: 255 255 255;
   --surface-2: 250 251 253;
