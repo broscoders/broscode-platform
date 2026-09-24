@@ -24,6 +24,7 @@ import { notificationsRouter } from "./routes/notifications";
 import { calendarRouter } from "./routes/calendar";
 import { auditRouter } from "./routes/audit";
 import { callsRouter } from "./routes/calls";
+import { coldEmailRouter } from "./routes/cold-email";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -76,6 +77,7 @@ app.use("/api/notifications", notificationsRouter);
 app.use("/api/calendar", calendarRouter);
 app.use("/api/audit", auditRouter);
 app.use("/api/calls", callsRouter);
+app.use("/api/cold-email", coldEmailRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

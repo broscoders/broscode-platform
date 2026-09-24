@@ -155,6 +155,19 @@ The AI agent picks up leads that have a phone number, places a real outbound cal
 
 Open **Cold Calling** in the sidebar, tick leads with a phone number, hit **Call Leads**. Run `npx prisma generate && npx prisma db push` once first to sync the new `Call` model to your database.
 
+## 5c. AI Cold Email (new)
+
+Parallel to cold calling, but for email: pick leads with an email on file, AI writes a genuinely personalized email per lead (references their business type, city, and whether they already have a website — never invents facts it wasn't given), sends it, and automatically schedules two follow-ups (day 3, day 7) that only go out if the lead's status hasn't moved forward.
+
+**Setup:**
+1. Uses the same `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` as the existing one-click template emails — see section 2 above.
+2. Add at least one connected row in **Settings → Email Accounts** (the sender name/email shown on outgoing mail).
+3. `GROQ_API_KEY` (same free key used by Cold Calling).
+4. **Follow-ups need a daily trigger.** `server/vercel.json` now has a Vercel Cron entry (`0 9 * * *`, once a day) that hits `/api/cold-email/follow-ups/run`. Set a `CRON_SECRET` in both `server/.env` and your Vercel project's Environment Variables (any random string — `openssl rand -hex 32`) so that endpoint can't be triggered by anyone else. Vercel Hobby plans only run daily crons, which is exactly what this needs.
+5. If you're not on Vercel (or want to test locally), you can trigger it manually any time: `curl -X POST https://<your-api>/api/cold-email/follow-ups/run -H "Authorization: Bearer <CRON_SECRET>"`.
+
+Open **Cold Email** in the sidebar, tick leads with an email, hit **Email Leads**.
+
 ## 6. Roadmap (next build stages)
 
 - **Day 2:** Claude-powered lead scoring & categorization, follow-up sequences, lead activity timeline UI, template editor UI, bulk lead actions

@@ -3,5 +3,8 @@
   "buildCommand": "npx prisma generate",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api" }
+  ],
+  "crons": [
+    { "path": "/api/cold-email/follow-ups/run", "schedule": "0 9 * * *" }
   ]
 }
