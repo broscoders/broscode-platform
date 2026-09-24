@@ -1,9 +1,10 @@
 import { Router } from "express";
 import express from "express";
+import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
-import { placeOutboundCall } from "../lib/telephony";
+import { placeOutboundCall, isValidTwilioRequest } from "../lib/telephony";
 import { generateNextTurn, summarizeCall, openingLine, type TranscriptTurn } from "../lib/call-agent";
 
 export const callsRouter = Router();
@@ -75,6 +76,17 @@ callsRouter.get("/:id", requireAuth, async (req, res) => {
 // Twilio posts application/x-www-form-urlencoded, not JSON, so parse that here specifically.
 const twilioForm = express.urlencoded({ extended: false });
 
+/** Rejects any webhook POST that didn't actually come from Twilio, so a guessed callId can't be used to inject a fake transcript or fake a call outcome. */
+function verifyTwilioSignature(req: Request, res: Response, next: NextFunction) {
+  const signature = req.headers["x-twilio-signature"] as string | undefined;
+  const publicUrl = process.env.SERVER_PUBLIC_URL?.replace(/\/$/, "") ?? "";
+  const fullUrl = `${publicUrl}${req.originalUrl}`;
+  if (!isValidTwilioRequest(signature, fullUrl, req.body)) {
+    return res.status(403).type("text/xml").send("<Response><Reject/></Response>");
+  }
+  next();
+}
+
 function xml(res: import("express").Response, body: string) {
   res.type("text/xml").send(`<?xml version="1.0" encoding="UTF-8"?>${body}`);
 }
@@ -83,7 +95,7 @@ async function getCallWithLead(callId: string) {
   return prisma.call.findUnique({ where: { id: callId }, include: { lead: { include: { category: true } } } });
 }
 
-callsRouter.post("/webhook/voice/:callId", twilioForm, async (req, res) => {
+callsRouter.post("/webhook/voice/:callId", twilioForm, verifyTwilioSignature, async (req, res) => {
   const call = await getCallWithLead(req.params.callId);
   if (!call) return xml(res, "<Response><Say>Sorry, something went wrong.</Say><Hangup/></Response>");
 
@@ -105,7 +117,7 @@ callsRouter.post("/webhook/voice/:callId", twilioForm, async (req, res) => {
   );
 });
 
-callsRouter.post("/webhook/gather/:callId", twilioForm, async (req, res) => {
+callsRouter.post("/webhook/gather/:callId", twilioForm, verifyTwilioSignature, async (req, res) => {
   const call = await getCallWithLead(req.params.callId);
   if (!call) return xml(res, "<Response><Hangup/></Response>");
 
@@ -144,7 +156,7 @@ callsRouter.post("/webhook/gather/:callId", twilioForm, async (req, res) => {
   }
 });
 
-callsRouter.post("/webhook/status/:callId", twilioForm, async (req, res) => {
+callsRouter.post("/webhook/status/:callId", twilioForm, verifyTwilioSignature, async (req, res) => {
   const call = await getCallWithLead(req.params.callId);
   if (!call) return res.sendStatus(200);
 
