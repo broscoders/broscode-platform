@@ -65,7 +65,7 @@ callsRouter.get("/", requireAuth, async (req, res) => {
 
 callsRouter.get("/:id", requireAuth, async (req, res) => {
   const call = await prisma.call.findUnique({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     include: { lead: true },
   });
   if (!call) return res.status(404).json({ error: "Call not found." });
@@ -96,7 +96,7 @@ async function getCallWithLead(callId: string) {
 }
 
 callsRouter.post("/webhook/voice/:callId", twilioForm, verifyTwilioSignature, async (req, res) => {
-  const call = await getCallWithLead(req.params.callId);
+  const call = await getCallWithLead(String(req.params.callId));
   if (!call) return xml(res, "<Response><Say>Sorry, something went wrong.</Say><Hangup/></Response>");
 
   await prisma.call.update({ where: { id: call.id }, data: { status: "IN_PROGRESS", startedAt: new Date() } });
@@ -118,7 +118,7 @@ callsRouter.post("/webhook/voice/:callId", twilioForm, verifyTwilioSignature, as
 });
 
 callsRouter.post("/webhook/gather/:callId", twilioForm, verifyTwilioSignature, async (req, res) => {
-  const call = await getCallWithLead(req.params.callId);
+  const call = await getCallWithLead(String(req.params.callId));
   if (!call) return xml(res, "<Response><Hangup/></Response>");
 
   const callerSaid = String(req.body.SpeechResult || "").trim();
@@ -157,7 +157,7 @@ callsRouter.post("/webhook/gather/:callId", twilioForm, verifyTwilioSignature, a
 });
 
 callsRouter.post("/webhook/status/:callId", twilioForm, verifyTwilioSignature, async (req, res) => {
-  const call = await getCallWithLead(req.params.callId);
+  const call = await getCallWithLead(String(req.params.callId));
   if (!call) return res.sendStatus(200);
 
   const twilioStatus = String(req.body.CallStatus || "");

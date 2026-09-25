@@ -27,7 +27,7 @@ categoriesRouter.post("/", async (req, res) => {
 categoriesRouter.patch("/:id", async (req, res) => {
   const { name, archived } = req.body ?? {};
   const category = await prisma.category.update({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     data: { ...(name && { name }), ...(typeof archived === "boolean" && { archived }) },
   });
   res.json(category);

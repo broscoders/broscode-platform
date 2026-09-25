@@ -8,6 +8,7 @@ import {
   inferCategoryName,
   scoreLead,
 } from "../lib/lead-discovery";
+import { generateLeadInsight } from "../lib/lead-insight";
 
 export const leadsRouter = Router();
 leadsRouter.use(requireAuth);
@@ -158,7 +159,7 @@ leadsRouter.get("/", async (req, res) => {
 
 leadsRouter.get("/:id", async (req, res) => {
   const lead = await prisma.lead.findUnique({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     include: {
       category: true,
       assignedTo: true,
@@ -249,4 +250,31 @@ leadsRouter.post("/:id/notes", async (req: AuthedRequest, res) => {
     data: { leadId: String(req.params.id), userId: req.user!.userId, content },
   });
   return res.status(201).json(note);
+});
+
+leadsRouter.post("/:id/ai-insight", async (req: AuthedRequest, res) => {
+  const lead = await prisma.lead.findUnique({ where: { id: String(req.params.id) }, include: { category: true } });
+  if (!lead) return res.status(404).json({ error: "Lead not found." });
+
+  try {
+    const insight = await generateLeadInsight({
+      businessName: lead.businessName,
+      categoryName: lead.category?.name ?? null,
+      city: lead.city,
+      website: lead.website,
+      hasEmail: Boolean(lead.email),
+      hasPhone: Boolean(lead.phone),
+      score: lead.score,
+      priority: lead.priority,
+    });
+
+    const updated = await prisma.lead.update({
+      where: { id: lead.id },
+      data: { aiInsight: insight, aiInsightAt: new Date() },
+    });
+
+    return res.json({ aiInsight: updated.aiInsight, aiInsightAt: updated.aiInsightAt });
+  } catch (err) {
+    return res.status(503).json({ error: (err as Error).message });
+  }
 });

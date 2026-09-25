@@ -1,4 +1,4 @@
-import { askGroq } from "./groq";
+import { askGroq, isGroqFailureResponse } from "./groq";
 
 interface LeadForEmail {
   businessName: string;
@@ -50,6 +50,10 @@ BODY: <email body>`,
     { role: "user", content: `Write the email now.${lead.contactName ? ` Address it to ${lead.contactName}.` : ""}` },
   ]);
 
+  if (isGroqFailureResponse(raw)) {
+    throw new Error("AI email generation is temporarily unavailable - try again shortly.");
+  }
+
   return parseSubjectAndBody(raw, `Quick question for ${lead.businessName}`);
 }
 
@@ -70,6 +74,10 @@ BODY: <email body>`,
     },
     { role: "user", content: "Write the follow-up now." },
   ]);
+
+  if (isGroqFailureResponse(raw)) {
+    throw new Error("AI follow-up generation is temporarily unavailable - try again shortly.");
+  }
 
   return parseSubjectAndBody(raw, `Re: ${previousSubject}`);
 }

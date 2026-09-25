@@ -1,4 +1,4 @@
-import { askGroq } from "./groq";
+import { askGroq, isGroqFailureResponse } from "./groq";
 
 export interface TranscriptTurn {
   role: "agent" | "caller";
@@ -62,6 +62,16 @@ export async function generateNextTurn(
   ];
 
   const raw = await askGroq(messages);
+
+  if (isGroqFailureResponse(raw)) {
+    // Don't speak the raw error sentence to a real person on the phone - end the call gracefully instead.
+    return {
+      speech: "Sorry, I'm having some trouble on my end right now - I'll try you again another time. Thanks for your patience, bye for now.",
+      outcome: "UNDETERMINED",
+      shouldHangup: true,
+    };
+  }
+
   const match = raw.match(OUTCOME_TAG_PATTERN);
   const tag = (match?.[1]?.toUpperCase() as CallOutcomeTag | "CONTINUE" | undefined) ?? "CONTINUE";
   const speech = raw.replace(OUTCOME_TAG_PATTERN, "").trim() || "Sorry, could you say that again?";
@@ -84,5 +94,5 @@ export async function summarizeCall(businessName: string, transcript: Transcript
     },
     { role: "user", content: convo },
   ]);
-  return raw.trim();
+  return isGroqFailureResponse(raw) ? "Call completed - summary unavailable." : raw.trim();
 }

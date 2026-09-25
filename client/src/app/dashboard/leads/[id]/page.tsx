@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Mail, Phone, Globe, Loader2, Send, Play, Square, UserCheck } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Globe, Loader2, Send, Play, Square, UserCheck, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,8 @@ interface LeadDetail {
   country: string | null;
   score: number;
   priority: string;
+  aiInsight: string | null;
+  aiInsightAt: string | null;
   status: string;
   category: { name: string } | null;
   activities: Activity[];
@@ -66,6 +68,7 @@ export default function LeadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [noteText, setNoteText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [insightLoading, setInsightLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -104,6 +107,21 @@ export default function LeadDetailPage() {
       setToast(message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function generateInsight() {
+    if (!lead) return;
+    setInsightLoading(true);
+    try {
+      const res = await api.post(`/leads/${lead.id}/ai-insight`);
+      setLead({ ...lead, aiInsight: res.data.aiInsight, aiInsightAt: res.data.aiInsightAt });
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Could not generate insight.";
+      setToast(message);
+    } finally {
+      setInsightLoading(false);
     }
   }
 
@@ -217,6 +235,34 @@ export default function LeadDetailPage() {
           </select>
         </div>
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="bracket-marker flex items-center gap-2">
+            <Sparkles className="h-4 w-4" /> AI Insight
+          </CardTitle>
+          <Button onClick={generateInsight} disabled={insightLoading} size="sm" variant="outline" className="gap-2">
+            {insightLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            {lead.aiInsight ? "Regenerate" : "Generate"}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {lead.aiInsight ? (
+            <>
+              <p className="text-sm">{lead.aiInsight}</p>
+              {lead.aiInsightAt && (
+                <p className="mt-2 text-xs text-text-muted">
+                  Generated {new Date(lead.aiInsightAt).toLocaleString()}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-text-muted">
+              Not generated yet — click Generate for a quick read on this lead and a suggested outreach angle.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card>

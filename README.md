@@ -2,9 +2,10 @@
 
 AI Lead Generation + CRM + Sales + Project Management, built for Bro's Code.
 
-**Stack:** Next.js 14 (TypeScript, Tailwind) · Express + TypeScript · PostgreSQL + Prisma ·
-JWT auth with role-based access · Google Places API (real lead data) · Resend (email) ·
-Claude API (AI scoring/assistant) · deployed on Vercel.
+**Stack:** Next.js 14 (TypeScript, Tailwind) · Express + TypeScript · MongoDB + Prisma ·
+JWT auth with role-based access · Google Places API (real lead data) · SMTP/nodemailer (email) ·
+Groq (free — powers AI scoring, the AI Assistant, Cold Calling and Cold Email agents) ·
+Twilio (cold calling) · deployed on Vercel.
 
 ```
 broscode-platform/
@@ -40,8 +41,13 @@ broscode-platform/
 1. resend.com → sign up → API Keys → Create API Key
 2. Add and verify your sending domain under Domains (or use their test domain while developing)
 
-**Anthropic (AI features):**
-1. console.anthropic.com → API Keys → Create Key
+**Anthropic (optional — not currently used by any feature):**
+`ANTHROPIC_API_KEY` is listed below for historical reasons but nothing in this codebase
+calls it right now. Every AI feature (lead scoring insight, AI Assistant, Cold Calling,
+Cold Email) runs on Groq instead, which is free:
+
+**Groq (free — actually powers all AI features):**
+1. console.groq.com → sign up → API Keys → Create Key
 
 ---
 
@@ -167,6 +173,10 @@ Parallel to cold calling, but for email: pick leads with an email on file, AI wr
 5. If you're not on Vercel (or want to test locally), you can trigger it manually any time: `curl -X POST https://<your-api>/api/cold-email/follow-ups/run -H "Authorization: Bearer <CRON_SECRET>"`.
 
 Open **Cold Email** in the sidebar, tick leads with an email, hit **Email Leads**.
+
+## 5d. AI Lead Insight (new — this replaces a feature that was documented but never actually built)
+
+The README and roadmap previously claimed "Claude-powered lead scoring" — that was never true; scoring was (and still is) a plain rule-based formula in `lib/lead-discovery.ts`. On top of that, every lead now has a **Generate Insight** button (on the lead detail page) that asks Groq for a short, honest read: how promising the lead looks based only on the real data on file (has a website or not, has email/phone, city, category), plus one concrete outreach angle — it's explicitly told not to invent facts it wasn't given (no fake company size, no fake pain points). Needs the same `GROQ_API_KEY` as everything else above.
 
 ## 6. Roadmap (next build stages)
 

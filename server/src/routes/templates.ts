@@ -46,7 +46,7 @@ templatesRouter.put("/:id", async (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: "Invalid input." });
 
   const current = await prisma.emailTemplate.findUnique({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     include: { versions: { orderBy: { version: "desc" }, take: 1 } },
   });
   if (!current) return res.status(404).json({ error: "Template not found." });
@@ -56,7 +56,7 @@ templatesRouter.put("/:id", async (req, res) => {
   const body = parsed.data.body ?? current.body;
 
   const template = await prisma.emailTemplate.update({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     data: {
       ...parsed.data,
       versions: { create: { version: nextVersion, subject, body } },
@@ -68,14 +68,14 @@ templatesRouter.put("/:id", async (req, res) => {
 templatesRouter.patch("/:id/status", async (req, res) => {
   const status = req.body?.status === "inactive" ? "inactive" : "active";
   const template = await prisma.emailTemplate.update({
-    where: { id: req.params.id },
+    where: { id: String(req.params.id) },
     data: { status },
   });
   res.json(template);
 });
 
 templatesRouter.post("/:id/duplicate", async (req, res) => {
-  const original = await prisma.emailTemplate.findUnique({ where: { id: req.params.id } });
+  const original = await prisma.emailTemplate.findUnique({ where: { id: String(req.params.id) } });
   if (!original) return res.status(404).json({ error: "Template not found." });
 
   const copy = await prisma.emailTemplate.create({
@@ -92,7 +92,7 @@ templatesRouter.post("/:id/duplicate", async (req, res) => {
 });
 
 templatesRouter.delete("/:id", async (req, res) => {
-  const id = req.params.id;
+  const id = String(req.params.id);
   await prisma.emailTemplateVersion.deleteMany({ where: { templateId: id } });
   await prisma.emailLog.updateMany({ where: { templateId: id }, data: { templateId: null } });
   await prisma.emailTemplate.delete({ where: { id } });

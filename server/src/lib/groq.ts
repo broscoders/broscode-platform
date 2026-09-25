@@ -135,6 +135,27 @@ function assertConfigured(): string {
   return apiKey;
 }
 
+const KNOWN_FAILURE_MESSAGES = new Set([
+  "Please type a question first.",
+  "System is a bit busy right now, please try again in a moment.",
+  "AI service is temporarily unavailable. Please try again shortly.",
+  "Sorry, I couldn't process that request. Please try rephrasing your question.",
+  "Something went wrong while processing your request. Please try again.",
+  "I could not generate a response.",
+]);
+
+/**
+ * askGroq() deliberately swallows failures and returns a friendly sentence instead of
+ * throwing, because its main caller (the in-app AI Assistant chat) shows that sentence
+ * directly to a person as the answer. Callers that instead treat askGroq's return value
+ * as raw content to embed elsewhere (a cold-call reply that gets spoken aloud, a cold-email
+ * body that gets sent to a real lead) must check this first and stop rather than
+ * accidentally speaking/sending the error sentence itself.
+ */
+export function isGroqFailureResponse(text: string): boolean {
+  return KNOWN_FAILURE_MESSAGES.has(text.trim());
+}
+
 export async function askGroq(messages: GroqMessage[]): Promise<string> {
   const apiKey = assertConfigured();
 

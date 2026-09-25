@@ -92,6 +92,8 @@ model Lead {
   sourceId        String?    @db.ObjectId
   score           Int        @default(0)
   priority        String     @default("Cold")
+  aiInsight       String?
+  aiInsightAt     DateTime?
   status          LeadStatus @default(NEW)
   assignedToId    String?    @db.ObjectId
   tags            String[]   @default([])
