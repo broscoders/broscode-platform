@@ -17,6 +17,7 @@ import {
   Mail,
   PhoneCall,
   Send,
+  Headset,
 } from "lucide-react";
 
 export interface NavItem {
@@ -43,6 +44,7 @@ export const navGroups: NavGroup[] = [
       { label: "All Leads", href: "/dashboard/leads", icon: Users },
       { label: "Email Templates", href: "/dashboard/leads/templates", icon: Mail },
       { label: "Cold Calling", href: "/dashboard/calls", icon: PhoneCall },
+      { label: "Call Assist (Free)", href: "/dashboard/call-assist", icon: Headset },
       { label: "Cold Email", href: "/dashboard/cold-email", icon: Send },
     ],
   },

@@ -6,6 +6,7 @@ import { prisma } from "../lib/prisma";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
 import { placeOutboundCall, isValidTwilioRequest } from "../lib/telephony";
 import { generateNextTurn, summarizeCall, openingLine, type TranscriptTurn } from "../lib/call-agent";
+import { generateCallScript } from "../lib/call-script";
 
 export const callsRouter = Router();
 
@@ -70,6 +71,83 @@ callsRouter.get("/:id", requireAuth, async (req, res) => {
   });
   if (!call) return res.status(404).json({ error: "Call not found." });
   return res.json(call);
+});
+
+// ── AI-Assisted Calling (free — a human dials from their own phone, AI just
+// preps the script and logs the outcome afterward; no Twilio/telephony involved) ──
+
+callsRouter.post("/assist/start", requireAuth, async (req: AuthedRequest, res) => {
+  const leadId = String(req.body?.leadId ?? "");
+  const lead = await prisma.lead.findUnique({ where: { id: leadId }, include: { category: true } });
+  if (!lead) return res.status(404).json({ error: "Lead not found." });
+  if (!lead.phone) return res.status(400).json({ error: "This lead has no phone number on file." });
+
+  try {
+    const script = await generateCallScript({
+      businessName: lead.businessName,
+      categoryName: lead.category?.name ?? null,
+      city: lead.city,
+      website: lead.website,
+    });
+
+    const call = await prisma.call.create({
+      data: { leadId: lead.id, status: "IN_PROGRESS", initiatedById: req.user!.userId, startedAt: new Date() },
+    });
+
+    return res.json({ callId: call.id, phone: lead.phone, businessName: lead.businessName, script });
+  } catch (err) {
+    return res.status(503).json({ error: (err as Error).message });
+  }
+});
+
+const ASSIST_OUTCOMES = ["INTERESTED", "NOT_INTERESTED", "CALLBACK_REQUESTED", "WRONG_NUMBER", "NO_ANSWER", "VOICEMAIL"] as const;
+const assistCompleteSchema = z.object({
+  outcome: z.enum(ASSIST_OUTCOMES),
+  notes: z.string().max(2000).optional(),
+});
+
+callsRouter.post("/assist/:id/complete", requireAuth, async (req: AuthedRequest, res) => {
+  const parsed = assistCompleteSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "A valid outcome is required." });
+
+  const call = await prisma.call.findUnique({ where: { id: String(req.params.id) } });
+  if (!call) return res.status(404).json({ error: "Call not found." });
+
+  const { outcome, notes } = parsed.data;
+  const noOutcomeStatuses = new Set(["NO_ANSWER", "VOICEMAIL"]);
+  const status = noOutcomeStatuses.has(outcome) ? outcome : "COMPLETED";
+  const callOutcome = noOutcomeStatuses.has(outcome) ? null : outcome;
+
+  await prisma.call.update({
+    where: { id: call.id },
+    data: {
+      status: status as "COMPLETED" | "NO_ANSWER" | "VOICEMAIL",
+      outcome: callOutcome as "INTERESTED" | "NOT_INTERESTED" | "CALLBACK_REQUESTED" | "WRONG_NUMBER" | null,
+      summary: notes || null,
+      endedAt: new Date(),
+    },
+  });
+
+  await prisma.leadActivity.create({
+    data: {
+      leadId: call.leadId,
+      userId: req.user!.userId,
+      type: "call",
+      message: notes ? `Manual call - ${outcome.toLowerCase().replace(/_/g, " ")}: ${notes}` : `Manual call - ${outcome.toLowerCase().replace(/_/g, " ")}`,
+    },
+  });
+
+  const leadStatusMap: Record<string, string> = {
+    INTERESTED: "INTERESTED",
+    NOT_INTERESTED: "NOT_INTERESTED",
+    VOICEMAIL: "CONTACTED",
+    NO_ANSWER: "CONTACTED",
+  };
+  if (leadStatusMap[outcome]) {
+    await prisma.lead.update({ where: { id: call.leadId }, data: { status: leadStatusMap[outcome] } });
+  }
+
+  return res.json({ ok: true });
 });
 
 // ── Twilio webhooks (public — Twilio's servers call these, not our logged-in users) ──

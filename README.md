@@ -178,6 +178,12 @@ Open **Cold Email** in the sidebar, tick leads with an email, hit **Email Leads*
 
 The README and roadmap previously claimed "Claude-powered lead scoring" — that was never true; scoring was (and still is) a plain rule-based formula in `lib/lead-discovery.ts`. On top of that, every lead now has a **Generate Insight** button (on the lead detail page) that asks Groq for a short, honest read: how promising the lead looks based only on the real data on file (has a website or not, has email/phone, city, category), plus one concrete outreach angle — it's explicitly told not to invent facts it wasn't given (no fake company size, no fake pain points). Needs the same `GROQ_API_KEY` as everything else above.
 
+## 5e. Call Assist — free alternative to Cold Calling (no Twilio needed)
+
+Twilio (and every other telephony provider) charges per minute for real phone calls — there's no way around that for actual PSTN calls, and Twilio trials aren't available in Pakistan. If you don't have a card set up yet, **Call Assist** gets most of the value for $0: AI writes a short call script per lead (opener, talking points, likely objections with responses, a closing line), you dial the lead from your own phone using your own number/plan, and after the call you tap an outcome button (Interested / Not Interested / Callback / Voicemail / No Answer / Wrong Number) — the CRM updates the lead's status and activity log exactly like the automated version does. Uses the same `Call` model as 5b, so these show up in the same call log. Needs only `GROQ_API_KEY` — no Twilio, no card, no per-minute cost.
+
+Open **Call Assist (Free)** in the sidebar to use it.
+
 ## 6. Roadmap (next build stages)
 
 - **Day 2:** Claude-powered lead scoring & categorization, follow-up sequences, lead activity timeline UI, template editor UI, bulk lead actions
