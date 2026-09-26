@@ -106,6 +106,17 @@ const assistCompleteSchema = z.object({
   notes: z.string().max(2000).optional(),
 });
 
+// Exhaustive, explicitly-typed table instead of ternaries + `as` casts - each branch is a
+// literal Prisma accepts directly, so there's nothing for TypeScript to get wrong here.
+const ASSIST_OUTCOME_EFFECTS = {
+  INTERESTED: { callStatus: "COMPLETED", callOutcome: "INTERESTED", leadStatus: "INTERESTED" },
+  NOT_INTERESTED: { callStatus: "COMPLETED", callOutcome: "NOT_INTERESTED", leadStatus: "NOT_INTERESTED" },
+  CALLBACK_REQUESTED: { callStatus: "COMPLETED", callOutcome: "CALLBACK_REQUESTED", leadStatus: null },
+  WRONG_NUMBER: { callStatus: "COMPLETED", callOutcome: "WRONG_NUMBER", leadStatus: null },
+  NO_ANSWER: { callStatus: "NO_ANSWER", callOutcome: null, leadStatus: "CONTACTED" },
+  VOICEMAIL: { callStatus: "VOICEMAIL", callOutcome: null, leadStatus: "CONTACTED" },
+} as const;
+
 callsRouter.post("/assist/:id/complete", requireAuth, async (req: AuthedRequest, res) => {
   const parsed = assistCompleteSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "A valid outcome is required." });
@@ -114,19 +125,24 @@ callsRouter.post("/assist/:id/complete", requireAuth, async (req: AuthedRequest,
   if (!call) return res.status(404).json({ error: "Call not found." });
 
   const { outcome, notes } = parsed.data;
-  const noOutcomeStatuses = new Set(["NO_ANSWER", "VOICEMAIL"]);
-  const status = noOutcomeStatuses.has(outcome) ? outcome : "COMPLETED";
-  const callOutcome = noOutcomeStatuses.has(outcome) ? null : outcome;
+  const effect = ASSIST_OUTCOME_EFFECTS[outcome];
 
-  await prisma.call.update({
-    where: { id: call.id },
-    data: {
-      status: status as "COMPLETED" | "NO_ANSWER" | "VOICEMAIL",
-      outcome: callOutcome as "INTERESTED" | "NOT_INTERESTED" | "CALLBACK_REQUESTED" | "WRONG_NUMBER" | null,
-      summary: notes || null,
-      endedAt: new Date(),
-    },
-  });
+  if (effect.callStatus === "COMPLETED") {
+    await prisma.call.update({
+      where: { id: call.id },
+      data: { status: "COMPLETED", outcome: effect.callOutcome, summary: notes || null, endedAt: new Date() },
+    });
+  } else if (effect.callStatus === "NO_ANSWER") {
+    await prisma.call.update({
+      where: { id: call.id },
+      data: { status: "NO_ANSWER", summary: notes || null, endedAt: new Date() },
+    });
+  } else {
+    await prisma.call.update({
+      where: { id: call.id },
+      data: { status: "VOICEMAIL", summary: notes || null, endedAt: new Date() },
+    });
+  }
 
   await prisma.leadActivity.create({
     data: {
@@ -137,14 +153,12 @@ callsRouter.post("/assist/:id/complete", requireAuth, async (req: AuthedRequest,
     },
   });
 
-  const leadStatusMap: Record<string, string> = {
-    INTERESTED: "INTERESTED",
-    NOT_INTERESTED: "NOT_INTERESTED",
-    VOICEMAIL: "CONTACTED",
-    NO_ANSWER: "CONTACTED",
-  };
-  if (leadStatusMap[outcome]) {
-    await prisma.lead.update({ where: { id: call.leadId }, data: { status: leadStatusMap[outcome] } });
+  if (effect.leadStatus === "INTERESTED") {
+    await prisma.lead.update({ where: { id: call.leadId }, data: { status: "INTERESTED" } });
+  } else if (effect.leadStatus === "NOT_INTERESTED") {
+    await prisma.lead.update({ where: { id: call.leadId }, data: { status: "NOT_INTERESTED" } });
+  } else if (effect.leadStatus === "CONTACTED") {
+    await prisma.lead.update({ where: { id: call.leadId }, data: { status: "CONTACTED" } });
   }
 
   return res.json({ ok: true });
